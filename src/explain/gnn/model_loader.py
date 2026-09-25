@@ -18,9 +18,12 @@ def _candidate_run_dirs(base_dir: Path) -> Tuple[Path, ...]:
     if not base_dir.exists():
         raise FileNotFoundError(f"GNN directory not found: {base_dir}")
     runs = [p for p in base_dir.iterdir() if p.is_dir()]
+    runs.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    # Flattened layouts keep the checkpoint directly under the graph-type directory.
+    if any(base_dir.glob("*.pt")) or any(base_dir.glob("*.pth")) or any(base_dir.glob("*.ckpt")):
+        runs.insert(0, base_dir)
     if not runs:
         raise FileNotFoundError(f"No training runs detected under {base_dir}")
-    runs.sort(key=lambda p: p.stat().st_mtime, reverse=True)
     return tuple(runs)
 
 

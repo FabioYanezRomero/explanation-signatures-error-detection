@@ -51,6 +51,15 @@ RUN python3 -m pip install --upgrade \
 COPY requirements.txt /app/requirements.txt
 RUN python3 -m pip install -r /app/requirements.txt
 
+# Application requirements may drag in a newer torch, which breaks the PyG extension
+# wheels built for 2.3.1+cu121. Re-pin the stack afterwards and verify it loads.
+RUN python3 -m pip install --no-cache-dir --force-reinstall --no-deps \
+    torch==2.3.1+cu121 torchvision==0.18.1+cu121 torchaudio==2.3.1+cu121 \
+    --index-url https://download.pytorch.org/whl/cu121 && \
+    python3 -m pip install --no-cache-dir torch==2.3.1+cu121 --index-url https://download.pytorch.org/whl/cu121 && \
+    python3 -m pip install --no-cache-dir "numpy<2"
+RUN python3 -c "import torch, torch_scatter, torch_sparse, torch_cluster, torch_geometric; print('torch', torch.__version__, 'pyg', torch_geometric.__version__)"
+
 # Optional: install Jupyter for interactive use
 RUN python3 -m pip install jupyter
 

@@ -118,3 +118,37 @@ core.*
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
+
+# Machine-specific compose override (paths to experiment artefacts)
+docker-compose.override.yml
+logs/
+
+# local pip target with transformers 4.46 for the containers
+.pip_ft/
+
+# Revision material that is not part of the released code (correspondence, submission PDFs, backups, packages)
+revision/response/
+revision/email.md
+revision/submission.pdf
+revision/submission.txt
+revision/corrected.txt
+revision/Graph_Neural_Networks_*.pdf
+revision/Suplementary_material.pdf
+revision/*.zip
+revision/overleaf_upload/
+revision/results.bak_fullspan/
+revision/results_ft.bak_fullspan/
+revision/results_v1_constituency12k/
+revision/manuscript_v2/*.pdf
+revision/manuscript_v2/*.bak*
+revision/manuscript_v2/*.log
+revision/manuscript_v2/main_v2_diff*
+revision/manuscript_v2/tables_ft/*.bak*
+revision/manuscript_v2/references*.bak*
+revision/highlights.txt.bak*
+outputs_base/
+!revision/manuscript_v2/Figure_1.pdf
+!revision/manuscript_v2/Figure_2.pdf
+!revision/graphical_abstract.pdf
+revision/graphical_abstract.tiff
+revision/graphical_abstract.png

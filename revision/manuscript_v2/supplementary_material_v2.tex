@@ -1,0 +1,534 @@
+\documentclass[review,12pt]{elsarticle}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{times}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage[table]{xcolor}
+\usepackage{pdflscape}
+\usepackage{adjustbox}
+\newcolumntype{L}[1]{>{\centering\arraybackslash}m{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}m{#1}}
+\newcolumntype{R}[1]{>{\centering\arraybackslash}m{#1}}
+\newcommand{\nowrapbox}[1]{\raisebox{0pt}[1.2em][1.2em]{\mbox{#1}}}
+\newcommand{\nowrap}[1]{\mbox{#1}}
+\renewcommand{\thetable}{S\arabic{table}}
+\renewcommand{\thefigure}{S\arabic{figure}}
+\renewcommand{\thesection}{\arabic{section}}
+
+\begin{document}
+\begin{frontmatter}
+\title{Supplementary Material for:\\
+Do Explanation Signatures Detect Classification Errors?\\
+A Controlled Comparison of Graph and Token Explainers}
+\author{Fabio Y\'a\~nez-Romero, Andr\'es Montoyo, Armando Su\'arez, Yoan Guti\'errez, Ruslan Mitkov}
+\end{frontmatter}
+
+\noindent This document contains the tables and the figure referenced in the main manuscript. Unless stated otherwise, every table uses the fine-tuned node features and the gold-label definition of error, as in the main text. Tables~S12--S14 give, in a second block, the same analyses with node features from the pre-trained encoder (Section~4.4.3 of the main text).
+
+\section{Protocol: common budget, terminology and metric definitions}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{8pt}
+\renewcommand{\arraystretch}{1.2}
+
+\begin{tabular}{@{}L{0.18\textwidth} C{0.40\textwidth} R{0.34\textwidth}@{}}
+\toprule
+\textbf{Dimension} & \textbf{General Strategy} & \textbf{Module Configuration} \\
+\midrule
+
+\textbf{Budget ($B$)} &
+\begin{minipage}[c]{0.40\textwidth}\centering
+Fixed number of forward passes across modules ($N$).
+\end{minipage} &
+\begin{minipage}[c]{0.34\textwidth}\centering
+\nowrap{$B_{TS}$: $N$ coalition evaluations}\\
+\nowrap{$B_{GSVX}$: $N$ node samples}\\
+\nowrap{$B_{SX}$: rollout $\times$ samples = $N$}
+\end{minipage}\\[0.6em]
+\midrule
+
+\nowrapbox{\textbf{Sampling Ratio ($R$)}} &
+\begin{minipage}[c]{0.40\textwidth}\centering
+$\displaystyle R_{\text{module}} = \frac{N}{\text{total search space}}$
+\end{minipage} &
+\begin{minipage}[c]{0.34\textwidth}\centering
+\nowrap{$R_{\text{TS}} = \frac{N}{2^n - 1}$}\\
+\nowrap{$R_{\text{GSVX}} = 0.25$}\\
+\nowrap{$R_{\text{SX}} \approx
+\frac{\text{expand atoms} \times \text{avg steps}}{|V|}$}
+\end{minipage}\\[0.6em]
+\midrule
+
+\textbf{Sparsity ($S$)} &
+\begin{minipage}[c]{0.40\textwidth}\centering
+Fixed based on the input elements for every node
+\end{minipage} &
+\nowrap{$S = 0.2$ at word/node level}\\[0.6em]
+\midrule
+
+\textbf{Context ($C$)} &
+\begin{minipage}[c]{0.40\textwidth}\centering
+Equivalent dependency coverage ensuring modality independence
+\end{minipage} &
+\begin{minipage}[c]{0.34\textwidth}\centering
+\nowrap{$C_{TS}$: full self-attention}\\
+\nowrap{$C_{GSVX}$: two-hop neighborhood}\\
+\nowrap{$C_{SX}$: two-hop receptive field}
+\end{minipage}\\[0.6em]
+\midrule
+
+\textbf{Granularity ($G$)} &
+\begin{minipage}[c]{0.40\textwidth}\centering
+Consistent perturbation resolution per exploration unit
+\end{minipage} &
+\begin{minipage}[c]{0.34\textwidth}\centering
+\nowrap{$G_{TS}$: single token sampling}\\
+\nowrap{$G_{GSVX}$: single token sampling}\\
+\nowrap{$G_{SX}$: single node expansion}
+\end{minipage}\\[0.6em]
+\bottomrule
+\end{tabular}
+
+\caption{Common budget, sparsity and receptive field across explainers (TS: TokenSHAP; GSVX: GraphSVX; SX: SubgraphX). Every configuration shares the same evaluation depth and perturbation resolution, so that differences between explanations can be attributed to the explainer or to the representation.}
+\label{tab:fairness}
+\end{table}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.1}
+\caption{Standardized Terminology and Notation for GNN and LLM Explainability}
+\label{tab:terminology}
+\rowcolors{2}{gray!5}{white}
+\begin{tabular}{@{}L{0.15\textwidth} C{0.35\textwidth} R{0.40\textwidth}@{}}
+\toprule
+\textbf{Term} & \textbf{Definition (General)} & \textbf{Instantiation} \\
+\midrule
+\textbf{Feature} &
+\begin{minipage}[c]{0.35\textwidth}\centering
+Atomic importance unit
+\end{minipage} &
+\begin{minipage}[c]{0.40\textwidth}\centering
+GNNs: nodes/edges; LLMs: tokens
+\end{minipage}\\[0.4em]
+\midrule
+\textbf{Importance Ranking} &
+\begin{minipage}[c]{0.35\textwidth}\centering
+Score-based ordering
+\end{minipage} &
+\begin{minipage}[c]{0.40\textwidth}\centering
+GraphSVX/SubgraphX scores; TokenSHAP values
+\end{minipage}\\[0.4em]
+\midrule
+\textbf{Masking} &
+\begin{minipage}[c]{0.35\textwidth}\centering
+Feature removal operation
+\end{minipage} &
+\begin{minipage}[c]{0.40\textwidth}\centering
+GNNs: remove nodes/edges; \\ LLMs: mask tokens
+\end{minipage}\\[0.4em]
+\midrule
+\textbf{Insertion/Deletion} &
+\begin{minipage}[c]{0.35\textwidth}\centering
+Adding/Removing features to baseline
+\end{minipage} &
+\begin{minipage}[c]{0.40\textwidth}\centering
+GNNs: add nodes/edges to empty graph;
+LLMs: add tokens
+\end{minipage}\\[0.4em]
+\midrule
+\textbf{Model Confidence} &
+\begin{minipage}[c]{0.35\textwidth}\centering
+Prediction probability for class
+\end{minipage} &
+\begin{minipage}[c]{0.40\textwidth}\centering
+\(P(\hat{y} \mid x)\) for predicted class \(\hat{y}\)
+\end{minipage}\\[0.4em]
+\midrule
+\textbf{Confidence Drop} &
+\begin{minipage}[c]{0.35\textwidth}\centering
+Change in confidence after perturbation
+\end{minipage} &
+\begin{minipage}[c]{0.40\textwidth}\centering
+\(\Delta = P(\hat{y} \mid x) - P(\hat{y} \mid x')\) where \(x'\) is perturbed input
+\end{minipage}\\[0.4em]
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Definitions of the metrics of the four dimensions (Table~1 of the main text). \(c(\cdot)\): confidence of the explained model in its predicted class; \(m(\cdot)\): margin between the probability of the predicted class and the highest probability among the other classes on the same input; \(S\): the explanation (the elements inside the 20\% budget, in decreasing order of importance); \(S_k\): its first \(k\) elements; \(x_S\): the input with only \(S\) kept; \(x_{\setminus S}\): the input with \(S\) removed.}
+\label{tab:metric_definitions}
+\begin{tabular}{@{}p{3.2cm}p{10.5cm}@{}}
+\toprule
+\textbf{Metric} & \textbf{Definition} \\
+\midrule
+\multicolumn{2}{@{}l}{\emph{Dimension 1: AUC discriminative capacity}} \\
+Deletion AUC & Trapezoid area under \(c(x_{\setminus S_k})\) as \(k\) runs from 0 to \(|S|\), the elements of \(S\) being removed one at a time, the most important first. \\
+Insertion AUC & Trapezoid area under \(c(x_{S_k})\) as the same elements are added, in the same order, to an empty input. \\
+\addlinespace
+\multicolumn{2}{@{}l}{\emph{Dimension 2: feature ranking stability and importance concentration}} \\
+Mask-out drop at \(k\) & \(c(x)-c(x_{\setminus S_k})\) for \(k\in\{1,3,5,10\}\); \(k\) is clipped to \(|S|\). \\
+Sufficiency drop at \(k\) & \(c(x)-c(x_{S_k})\) for the same \(k\). \\
+Concentration at \(k\) & Mask-out drop at \(k\) divided by the mask-out drop at \(|S|\): the share of the whole drop that the first \(k\) elements account for. \\
+\addlinespace
+\multicolumn{2}{@{}l}{\emph{Dimension 3: consistency across outcomes}} \\
+\(m(x)\) & Margin of the original prediction (a confidence feature). \\
+\(m(x_S)\) & Margin of the explanation alone; \(m(x_S)>0\) means that the explanation reproduces the decision. \\
+\(m(x_{\setminus S})\) & Margin once the explanation is removed; \(m(x_{\setminus S})<0\) means that removing the explanation flips the decision. \\
+\addlinespace
+\multicolumn{2}{@{}l}{\emph{Dimension 4: behavioural faithfulness}} \\
+Sufficiency \(F^{+}\) & \(c(x_S)/c(x)\): the fraction of the original confidence that the explanation reproduces on its own. \\
+Necessity \(F^{-}\) & \(1-c(x_{\setminus S})/c(x)\): the fraction of the original confidence lost when the explanation is removed. \\
+Asymmetry \(A\) & \((F^{-}-F^{+})/(F^{-}+F^{+})\): positive when the explanation is more necessary than sufficient. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection*{SubgraphX: explanation and node ranking}
+SubgraphX returns a set of nodes rather than a ranking. The explanation evaluated in every metric is the highest-scoring coalition within the node budget (20\% of the nodes) returned by the Monte Carlo tree search. The progression metrics of Dimensions~1 and~2 require an importance ranking over the elements of the explanation; for SubgraphX this ranking is the \emph{search credit} of each node, defined as the sum, over all coalitions explored by the search, of the coalition score divided by the coalition size, and it is truncated to the coalition, so that the deletion and insertion trajectories span the same 20\% budget as for the other explainers.
+
+\subsection*{Text-to-graph conversion: parser models}
+Hierarchical graphs are extracted with Stanza. POS tagging and dependency parsing use the \texttt{combined\_charlm} model, which incorporates character-level language model features; lemmatisation uses \texttt{combined\_nocharlm}; constituency parsing uses \texttt{ptb3-revised\_charlm}, trained on Penn Treebank 3 (revised), and produces Penn Treebank-style phrase structures. Dependency parsing yields head--dependent relations with morphological annotations (POS tags, lemmas, morphological features).
+
+\clearpage
+\section{Coefficients of the combined detector}
+
+Table~\ref{tab:coef} gives the standardised coefficients of the explanation features in the combined detector (confidence plus explanation, Equation~1 of the main text), one column per configuration and one block per dataset. The confidence features (maximum softmax probability, margin, entropy) are in the model but not shown. \(^{*}\): the 95\% interval from 200 bootstrap refits excludes zero.
+
+How to read the table: every feature is standardised, so magnitudes are comparable within a column, and the detector predicts that a prediction is correct, so a positive coefficient means that a larger value of the feature makes the detector more inclined to declare the prediction correct and a negative one that it points towards an error.
+
+Because the confidence features are in the same model, a metric that only repeats the confidence receives a small coefficient whose sign may change from one topology to the next; a metric that carries information of its own keeps a coefficient of the same sign across topologies. This is the reading behind the paragraph ``Dimension weights'' of Section~4.3 of the main text.
+
+\begin{landscape}
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\caption{Standardised coefficients of the explanation features in the combined detector (gold-label errors), AG News (upper block) and SST-2 (lower block).}
+\label{tab:coef}
+\adjustbox{max width=\linewidth, max totalheight=0.88\textheight}{%
+\begin{tabular}{@{}lccccccccc@{}}
+\toprule
+\input{tables_ft/merged_coefficients.tex}
+\end{tabular}%
+}
+\end{table}
+\end{landscape}
+
+\section{Error detection with respect to the teacher's labels}
+
+For the surrogates, an ``error'' can also be defined as a disagreement with the teacher, the target they were trained on. Table~\ref{tab:teacher} repeats for this target the detectors of Table~S12 (panel a) and the calibration and high-confidence analysis of Table~S13 (panel b).
+
+The language model has no teacher and therefore no row here; its gold-label detection is in Table~S12. Disagreement with the teacher is a different and easier task than a gold-label error, since the surrogate is well calibrated with respect to the labels it was trained on and its confidence alone detects the disagreements (AUROC 0.96--0.98), so the values of this table are not comparable with those of Table~S12 or Figure~5 of the main text.
+
+For reference, on the gold-label target the combined detector of the same surrogates reaches AUROC 0.83--0.86 on AG News and 0.80--0.84 on SST-2, and the language model's confidence 0.887 and 0.835 (Table~S12).
+
+Table~\ref{tab:gbm} reports a gradient-boosting detector on the same features (gold-label errors). The logistic detector of Equation~1 of the main text is linear in the features; a gradient-boosting classifier trained on the same features and folds can exploit interactions and non-monotonic effects, so if the explanation carried information that a linear detector cannot use, the gain would appear here.
+
+It does not change the picture: the gains of adding the explanation to the surrogate's confidence are of the same size and sign as with the logistic detector (AG News +0.011 to +0.019, SST-2 \(-0.027\) to \(-0.005\)), and for BERT the explanation still adds nothing (\(-0.004\) and \(-0.014\)); no surrogate reaches BERT's confidence with either detector.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\caption{Error detection with respect to the teacher's labels (surrogates only). (a) 10-fold stratified cross-validation, class-balanced logistic regression. Majority: accuracy of declaring every prediction an agreement. Explanation: detector on the four dimensions. Nested: AUROC of the detector on the surrogate's confidence alone, on the explanation alone and on both; \(\Delta\): paired-bootstrap gain of adding the explanation to the confidence, with its 95\% interval. (b) Calibration and detection of disagreements among the predictions with confidence above 0.9: expected calibration error (ECE), disagreements, disagreements made with confidence above 0.9 (share of the disagreements), AUROC of the detector on the confidence alone / on confidence plus explanation within that regime, and paired-bootstrap gain with its 95\% interval. --: fewer than ten disagreements above the threshold, so no detector is fitted in that regime (SST-2 has 1--3).}
+\label{tab:teacher}
+\textbf{(a) Detection of disagreements with the teacher}\\[0.3em]
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lllcccccccccc@{}}
+\toprule
+& & & & \multicolumn{5}{c}{\textbf{Detector on the explanation}} & \multicolumn{4}{c}{\textbf{Nested (AUROC)}} \\
+\cmidrule(lr){5-9} \cmidrule(lr){10-13}
+\textbf{Dataset} & \textbf{Explainer} & \textbf{Graph} & Majority & Acc. & Bal.\ acc. & AUROC & AUPRC & MCC & Confidence & Explanation & Both & \(\Delta\) [95\% CI] \\
+\midrule
+\input{tables_ft/merged_error_detection_teacher.tex}
+\end{tabular}%
+}
+
+\vspace{0.9em}
+\textbf{(b) Calibration and the high-confidence regime}\\[0.3em]
+\resizebox{0.9\textwidth}{!}{%
+\begin{tabular}{@{}lllccccc@{}}
+\toprule
+\textbf{Dataset} & \textbf{Explainer} & \textbf{Graph} & ECE & Disagreements & Disagr.\ conf.\ \(>0.9\) & AUROC conf.\ / +expl. & \(\Delta\)AUROC [95\% CI] \\
+\midrule
+\input{tables_ft/supp_calibration_teacher.tex}
+\end{tabular}%
+}
+\end{table}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\caption{Gradient-boosting detector (gold-label errors, 10-fold cross-validation) on the same features as the logistic detector: AUROC on the confidence alone and on confidence plus explanation, and paired-bootstrap gains in AUROC and AUPRC with 95\% intervals.}
+\label{tab:gbm}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lllcccc@{}}
+\toprule
+\textbf{Dataset} & \textbf{Explainer} & \textbf{Graph} & AUROC confidence & AUROC conf.\ + expl. & \(\Delta\)AUROC [95\% CI] & \(\Delta\)AUPRC [95\% CI] \\
+\midrule
+\input{tables_ft/supp_gbm.tex}
+\end{tabular}%
+}
+\end{table}
+
+\section{Combining the surrogate with the language model}
+
+Table~\ref{tab:cross_model} adds the surrogate's signals to a detector of BERT's gold-label errors built on BERT's own confidence (Section~4.3 of the main text), on all test instances and among BERT's predictions with confidence above 0.95; for each family of additions the configuration with the largest AUROC gain is shown (228 combinations in total).
+
+The lower part reports the surrogate as a second opinion: on the instances where surrogate and teacher disagree, which of the two is right. Disagreements are given as a count and as a percentage of the test set; ``BERT right'' and ``Surrogate right'' are the percentages of those instances on which each model is correct (on AG News both can be wrong, so the two need not sum to 100); the ratio is the first divided by the second.
+
+A rule that replaces BERT's prediction by the surrogate's whenever they disagree changes the accuracy by the difference between the two percentages times the disagreement rate, which is negative in every row.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\caption{Surrogate signals added to the detector of BERT's errors, and the surrogate as a second opinion. Upper part: AUROC of the detector on BERT's confidence alone and with the addition, and paired-bootstrap gains with 95\% intervals; the best configuration per family. Lower part: accuracy of BERT and of the surrogate on the test set and on the instances where they disagree; any rule that defers to the surrogate on those instances lowers the accuracy by the difference between the last two columns.}
+\label{tab:cross_model}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lllcccc@{}}
+\toprule
+\textbf{Dataset} & \textbf{Instances} & \textbf{Addition to BERT's confidence} & AUROC BERT conf. & AUROC with addition & \(\Delta\)AUROC [95\% CI] & \(\Delta\)AUPRC [95\% CI] \\
+\midrule
+\input{tables_ft/tab_cross_model.tex}
+\end{tabular}%
+}
+
+\vspace{0.8em}
+\begin{tabular}{@{}llcccccc@{}}
+\toprule
+& & \multicolumn{2}{c}{\textbf{Accuracy (\%)}} & & \multicolumn{3}{c}{\textbf{On the disagreements}} \\
+\cmidrule(lr){3-4} \cmidrule(lr){6-8}
+\textbf{Dataset} & \textbf{Graph} & BERT & Surrogate & Disagreements & BERT right (\%) & Surrogate right (\%) & Ratio \\
+\midrule
+\input{tables_ft/supp_second_opinion.tex}
+\end{tabular}
+\end{table}
+
+\section{Overlap between graph and token explanations}
+
+Table~\ref{tab:overlap} compares, instance by instance, the words that the graph explainer and TokenSHAP place inside the 20\% budget (for the graph explainers, the words of the selected nodes). Jaccard: size of the intersection over the size of the union of the two word sets. Spearman: rank correlation of the shared words, computed only when at least three words are shared. Top-1 match: share of instances whose highest-ranked word is the same in both.
+
+Two selections of the same size drawn independently from the same text give an expected Jaccard of about 0.11 whatever the length of the text; the AG News values sit at that level and the SST-2 values slightly above it, which is what the granularity of short texts produces: an SST-2 explanation holds a median of four words (AG News: nine), so a single shared word already gives a Jaccard of 0.14--0.33.
+
+The last three columns test whether the overlap says anything about correctness: the Jaccard index used alone as a score for BERT's errors gives AUROC 0.49--0.58 (0.5 is chance), and adding it to the nested detector of BERT's errors or of the surrogate's errors lowers the AUROC in every configuration. The two explainers therefore do not select the same words, and how much they agree does not indicate whether either model is right.
+
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\caption{Overlap between the words highlighted by the graph explainer and by TokenSHAP at the 20\% budget, per instance: mean Jaccard index, mean Spearman correlation of the shared words, and share of instances with the same top-1 word. AUROC: the Jaccard index used alone as a score for BERT's gold-label errors. \(\Delta\)AUROC: paired-bootstrap gain of adding the overlap to the nested detector of BERT's errors and of the surrogate's errors, with 95\% intervals.}
+\label{tab:overlap}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lllcccccc@{}}
+\toprule
+\textbf{Dataset} & \textbf{Explainer} & \textbf{Graph} & Jaccard & Spearman & Top-1 match & AUROC (BERT errors) & \(\Delta\)AUROC, BERT detector & \(\Delta\)AUROC, surrogate detector \\
+\midrule
+\input{tables_ft/tab_overlap.tex}
+\end{tabular}%
+}
+\end{table}
+
+\section{Seed replicates of the surrogates}
+
+The comparison between the distilled surrogate and its gold-trained twin (Table~5 of the main text) rests on one training run of each. To check that the difference between them is not seed variance, every surrogate was trained once more with a different random seed and nothing else changed.
+
+Table~\ref{tab:seed_replicates} lists, for each topology, the original distilled surrogate, its replicate, the gold-trained surrogate and its replicate, with the columns of Table~5 plus the agreement with BERT and the Jaccard index between the surrogate's error set and BERT's.
+
+A replicate moves each column by at most 6 points for the distilled surrogates and at most 12 for the gold-trained ones (in the last column), whereas the gap between distilled and gold-trained in that column is 17--35 points; the seed accounts for a small part of the difference and never for its sign.
+
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\caption{Seed replicates of the distilled and of the gold-trained surrogate (same graphs, node features, architecture and protocol; different random seed), against BERT's gold-label errors on the test split: accuracy with respect to the gold labels, agreement with BERT's predictions, fraction of BERT's errors that the surrogate also makes, Jaccard index of the two error sets, and fraction of BERT's errors on which the surrogate is confident (\(>0.9\)) and agrees with BERT.}
+\label{tab:seed_replicates}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lllccccc@{}}
+\toprule
+\textbf{Dataset} & \textbf{Graph} & \textbf{Surrogate} & Accuracy (gold) & Agreement with BERT & BERT errors reproduced & Jaccard of errors & Confident and agreeing \\
+\midrule
+\input{tables_ft/supp_seed_replicates.tex}
+\end{tabular}%
+}
+\end{table}
+
+\clearpage
+\section{Dimension 2: progression of the confidence drop}
+
+Figure~\ref{fig:progression_combined} shows the two readings of Dimension~2 as curves over \(k\). Each point is the mean, over the instances of one explainer pooled across its four graph types (or over the language model for TokenSHAP), of the confidence lost when the \(k\) top-ranked elements are removed, \(c(x)-c(x_{\setminus S_k})\) (a), or when only those \(k\) elements are kept, \(c(x)-c(x_{S_k})\) (b); \(k\) is clipped to the size of the explanation. Solid lines are correct predictions and dashed lines errors.
+
+In (a) the curve of the errors lies above the curve of the correct predictions for every explainer: removing the top-ranked elements costs more confidence on an error, which is the signal that the mask-out drop carries. The absolute drops are small (below 0.1) because 20\% of the input rarely changes a confident decision (Dimension~4). For TokenSHAP on SST-2 the error curve peaks at \(k=3\) and declines afterwards, because on BERT's errors removing more words raises the confidence as often as it lowers it (Section~4.2 of the main text); the signed mean cancels while the magnitude of the change keeps separating errors.
+
+In (b) the order is largely reversed, correct predictions lose more than errors (the two TokenSHAP curves on SST-2 cross at \(k=5\)), because the drop is measured from the original confidence and correct predictions start from a higher one; this is why the sufficiency drop describes the explainer (GraphSVX explanations reproduce far more of the confidence than SubgraphX explanations) rather than the outcome, and is the weaker error signal of the two (Table~\ref{tab:single_feature}).
+
+% Figure S1
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures_ft/Figure_5a.png}
+        \caption{Mask-out progression.}
+        \label{fig:maskout_progression}
+    \end{subfigure}
+    
+    \vspace{0.1em}
+    
+    \begin{subfigure}{\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures_ft/Figure_5b.png}
+        \caption{Sufficiency progression.}
+        \label{fig:sufficiency_progression}
+    \end{subfigure}
+    \caption{Mean cumulative confidence drop when the top-\(k\) elements are removed (a) or when only the top-\(k\) elements are kept (b), for correct and incorrect predictions, per explainer, averaged over graph types.}
+    \label{fig:progression_combined}
+\end{figure}
+
+\section{Dimension 3 read as decisions}
+
+Table~\ref{tab:margin_flips} gives the values plotted in Figure~4 of the main text together with the complementary reading. Flip: percentage of instances whose decision changes when the explanation is removed, that is, \(m(x_{\setminus S})<0\). Kept: percentage whose decision is reproduced by the explanation alone, \(m(x_S)>0\). Both are given separately for correct predictions and for errors. The two columns come from two different perturbations of the same instance, removing the explanation and keeping only the explanation, so they need not sum to 100: the complement of a flip is a decision that survives the removal, and the complement of a kept decision is an explanation that does not reproduce it on its own.
+
+The error signal is in the flip columns: an error flips far more often than a correct prediction, for every explainer and topology.
+
+The kept columns describe the explainer rather than the outcome: GraphSVX explanations keep the decision in 99--100\% of the correct predictions and 88--100\% of the errors, SubgraphX in 61--99\% and 49--93\% depending on the topology, TokenSHAP in 65--77\% and 55--59\%; the difference between correct and error is small next to the difference between explainers, which is why \(m(x_S)\) is a weak error signal in Table~\ref{tab:single_feature}.
+
+% Table S10
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\caption{Dimension 3 read as decisions, by explainer, graph type and correctness of the prediction (gold label). Flip: percentage of instances whose decision changes when the explanation is removed (\(m(x_{\setminus S})<0\)). Kept: percentage whose decision is reproduced by the explanation alone (\(m(x_S)>0\)). Fine-tuned node features, 20\% budget.}
+\label{tab:margin_flips}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}llcccccccc@{}}
+\toprule
+& & \multicolumn{4}{c}{\textbf{AG News}} & \multicolumn{4}{c}{\textbf{SST-2}} \\
+\cmidrule(lr){3-6} \cmidrule(lr){7-10}
+& & \multicolumn{2}{c}{Flip (\%)} & \multicolumn{2}{c}{Kept (\%)} & \multicolumn{2}{c}{Flip (\%)} & \multicolumn{2}{c}{Kept (\%)} \\
+\cmidrule(lr){3-4} \cmidrule(lr){5-6} \cmidrule(lr){7-8} \cmidrule(lr){9-10}
+\textbf{Explainer} & \textbf{Graph} & correct & error & correct & error & correct & error & correct & error \\
+\midrule
+\input{tables_ft/tab_margin_flips.tex}
+\end{tabular}%
+}
+\end{table}
+
+\section{Single explanation metrics as error scores}
+
+Table~\ref{tab:single_feature} asks how well each metric separates errors from correct predictions when used alone, without any detector. Each entry is the AUROC of the metric as an error score, oriented so that the more informative direction counts (the larger of AUROC and \(1-\)AUROC), so 0.5 is chance and no entry falls below it.
+
+The first column is the maximum softmax probability of the explained model, the reference that every explanation metric has to be compared with; the remaining columns are the two metrics of each dimension.
+
+The metrics that measure what remains after the explanation is removed (deletion AUC, mask-out drop, \(m(x_{\setminus S})\), \(F^{-}\)) approach the reference for every explainer, and the metrics that describe the explanation on its own (insertion AUC, sufficiency drop, \(m(x_S)\), \(F^{+}\)) stay below it and vary between explainers; the signed mask-out drop of TokenSHAP is at chance for the reason given in Section~4.2 of the main text.
+
+Several explanation metrics separate errors better for the surrogates than the same metric does for the language model (on AG News, the mask-out drop and \(F^{-}\) reach 0.74--0.84 for the surrogates against 0.51 and 0.53 for TokenSHAP). This is not an advantage of the graph representation: for a surrogate every removal lowers the confidence, more on its errors, so these metrics carry the surrogate's confidence, whereas for BERT the drop changes sign and cancels. The comparison that matters is each metric against the confidence of its own model, first column, and on that comparison no explanation metric of any model improves on it, while the confidence of the language model (0.889 on AG News, 0.848 on SST-2) stays at or above every metric of every surrogate. Nor do the explanation metrics, taken together, separate errors better for the surrogates: the detector trained on the four dimensions alone (Table~\ref{tab:error_detection_full}, ``Detector trained on the explanation'') reaches 0.82--0.86 for the eight graph configurations of AG News against 0.864 for TokenSHAP, the best of the nine, and 0.80--0.82 against 0.81 on SST-2, where the differences lie within the bootstrap intervals.
+
+% Table S11
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\caption{Error-oriented AUROC of individual explanation metrics used alone as an error score (gold-label errors, 10-fold out-of-fold), next to the maximum softmax probability (MSP) of the explained model, for each explainer--representation configuration. \(m(x_{\setminus S})\) and \(m(x_S)\): margin after removing the explanation and margin of the explanation alone (Dimension~3); \(F^{-}\) and \(F^{+}\): necessity and sufficiency (Dimension~4).}
+\label{tab:single_feature}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lllccccccccc@{}}
+\toprule
+\textbf{Dataset} & \textbf{Explainer} & \textbf{Graph} & \textbf{MSP} & \textbf{Deletion AUC} & \textbf{Insertion AUC} & \textbf{Mask-out} \(k{=}5\) & \textbf{Suff.} \(k{=}5\) & \(m(x_{\setminus S})\) & \(m(x_S)\) & \(F^{-}\) & \(F^{+}\) \\
+\midrule
+\input{tables_ft/tab_single_feature_full.tex}
+\end{tabular}%
+}
+\end{table}
+
+% Table S12
+\section{Error detection: full metric set}
+
+Table~\ref{tab:error_detection_full} gives the values behind Figure~5 of the main text, together with the majority-class baseline, accuracy, balanced accuracy, AUPRC of the error class and Matthews correlation coefficient of the detector trained on the four dimensions of explanation features alone, and the paired-bootstrap interval of the gain of adding the explanation features to the confidence. The chance level of AUPRC is the error rate (0.06--0.07 on AG News, 0.08--0.10 on SST-2).
+
+The lower block repeats the analysis with node features from the pre-trained encoder (\texttt{bert-base-uncased}), everything else unchanged (Section~4.4.3 and Table~6 of the main text); the TokenSHAP rows are the same in both blocks because the language model does not depend on the node features.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\caption{Error detection with respect to the gold label, full metric set (10-fold stratified cross-validation, class-balanced logistic regression), with fine-tuned (upper block) and pre-trained (lower block) node features. Majority: accuracy of the detector that declares every prediction correct. Explanation: the four dimensions of explanation features. \(\Delta\): paired-bootstrap gain of the detector on confidence and explanation over the detector on confidence alone, with its 95\% interval.}
+\label{tab:error_detection_full}
+\adjustbox{max width=\textwidth, max totalheight=0.9\textheight}{%
+\begin{tabular}{@{}lllccccccccc@{}}
+\toprule
+& & & & \multicolumn{5}{c}{\textbf{Detector trained on the explanation}} & \multicolumn{3}{c}{\textbf{AUROC of the detector trained on}} \\
+\cmidrule(lr){5-9} \cmidrule(lr){10-12}
+\textbf{Dataset} & \textbf{Explainer} & \textbf{Graph} & Majority acc. & Acc. & Bal.\ acc. & AUROC & AUPRC & MCC & Model confidence & Conf.\ + explanation & \(\Delta\) [95\% CI] \\
+\midrule
+\input{tables_ft/merged_tab_error_detection_full.tex}
+\end{tabular}%
+}
+\end{table}
+
+% Table S13
+\section{Calibration and the high-confidence regime: both datasets}
+
+Table~\ref{tab:calibration_full} gives Table~4 of the main text for both datasets, with the paired-bootstrap intervals of the gains of adding the explanation features to the confidence-only detector among the predictions with confidence above 0.9. On SST-2 each regime holds 38--43 errors. The lower block repeats the analysis with pre-trained node features.
+
+ECE, the expected calibration error, measures how far a model's confidence is from its actual accuracy: the predictions are grouped into ten equal-width confidence bins, the mean confidence of each bin is compared with the accuracy observed in it, and ECE is the average of the absolute differences weighted by the size of the bins. A value of 0.04 means that a model which announces a confidence of 0.95 is right about 91\% of the time; 0.01 is a nearly perfectly calibrated model. Read with the next columns, the table says where the gap between surrogate and language model comes from: on AG News BERT has ECE 0.010 and is confident (above 0.9) in 31\% of its errors, whereas the surrogates, with the same number of errors, have ECE 0.041--0.044 and are confident in 56--61\% of theirs; on SST-2 BERT itself is less well calibrated (0.039, confident in 44\% of its errors) and the surrogates (0.049--0.056) are close to it. With respect to the teacher's labels the same surrogates have ECE 0.003--0.006 (Table~4 of the main text): their confidence measures agreement with the teacher, not correctness, and the errors that the teacher makes hesitantly they make with confidence. This is the confidence that the explanation partly recovers in the AG News rows, and that it cannot improve on SST-2.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\caption{Calibration with respect to the gold labels and error detection among high-confidence predictions (confidence \(>0.9\)), with fine-tuned (upper block) and pre-trained (lower block) node features. \(\Delta\)AUROC and \(\Delta\)AUPRC: gain of adding the explanation features to the confidence-only detector within the regime (paired bootstrap, 95\% interval).}
+\label{tab:calibration_full}
+\adjustbox{max width=\textwidth, max totalheight=0.9\textheight}{%
+\begin{tabular}{@{}lllccccccc@{}}
+\toprule
+\textbf{Dataset} & \textbf{Explainer} & \textbf{Graph} & \textbf{ECE} & \textbf{Errors} & \textbf{Share of errors with conf.\(>\)0.9} & \textbf{Errors conf.\(>\)0.9} & \textbf{AUROC conf.\ / +expl.} & \(\Delta\)\textbf{AUROC} [95\% CI] & \(\Delta\)\textbf{AUPRC} [95\% CI] \\
+\midrule
+\input{tables_ft/merged_tab_calibration_full.tex}
+\end{tabular}%
+}
+\end{table}
+
+% Table S14
+\section{Gold-trained control: bootstrap intervals}
+
+Table~\ref{tab:control_full} gives Table~5 of the main text with the paired-bootstrap 95\% intervals of the difference between the gold-trained and the distilled surrogate, with fine-tuned and with pre-trained node features.
+
+The second column counts the errors of BERT on which the surrogate is also wrong, with any class; the same-class fraction of Table~5 is lower by at most 2 points with fine-tuned features and 5 points with pre-trained features, and identical on SST-2, where there are only two classes.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\caption{Gold-trained control with intervals, with fine-tuned (upper block) and pre-trained (lower block) node features: accuracy with respect to the gold labels, fraction of BERT's errors on which the surrogate is also wrong (any class), and fraction on which it gives BERT's wrong class with confidence above 0.9. \(\Delta\): gold-trained minus distilled surrogate, with a paired-bootstrap 95\% interval.}
+\label{tab:control_full}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}llccccc@{}}
+\toprule
+& & \textbf{Acc.\ gold} & \multicolumn{2}{c}{\textbf{BERT errors reproduced}} & \multicolumn{2}{c}{\textbf{Confident and agreeing on BERT errors}} \\
+\cmidrule(lr){4-5} \cmidrule(lr){6-7}
+\textbf{Dataset} & \textbf{Graph} & Distilled / Gold-tr. & Distilled / Gold-tr. & \(\Delta\) [95\% CI] & Distilled / Gold-tr. & \(\Delta\) [95\% CI] \\
+\midrule
+\input{tables_ft/merged_tab_control_full.tex}
+\end{tabular}%
+}
+\end{table}
+
+\end{document}

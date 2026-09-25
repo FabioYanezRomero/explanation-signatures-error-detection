@@ -1,0 +1,28 @@
+ & SubgraphX Constituency & SubgraphX Syntactic & SubgraphX Window & SubgraphX Skip-gram & GraphSVX Constituency & GraphSVX Syntactic & GraphSVX Window & GraphSVX Skip-gram & TokenSHAP \\
+\midrule
+\emph{Dimension 1} & & & & & & & & & \\
+\quad Deletion AUC & -0.77* & -0.14 & -0.33 & -0.53* & -0.64 & +0.61 & -1.15* & -0.84* & +0.64 \\
+\quad Insertion AUC & +0.06 & -0.57 & +0.43 & -0.85 & +0.94 & +0.66 & +0.30 & +1.24* & +0.00 \\
+\addlinespace
+\emph{Dimension 2} & & & & & & & & & \\
+\quad Mask-out drop \(k{=}1\) & +0.17 & -0.14 & -0.43 & +0.83 & -0.10 & +0.63* & -0.22 & +0.29 & +0.08 \\
+\quad Mask-out drop \(k{=}3\) & -0.67* & -0.31 & +1.03* & +0.42 & +0.03 & -0.75 & +1.09 & +0.50 & -0.06 \\
+\quad Mask-out drop \(k{=}5\) & +0.13 & +0.70 & -0.19 & -0.34 & -0.27 & +0.13 & -0.78 & -0.90 & +0.06 \\
+\quad Mask-out drop \(k{=}10\) & -0.01 & -0.19 & -0.29 & -0.15 & +0.02 & +0.09 & -0.20 & +0.00 & +0.46 \\
+\quad Sufficiency drop \(k{=}1\) & +0.12 & -0.02 & +0.48 & +1.36* & +0.42 & +0.19 & +0.38 & +0.88 & +0.45* \\
+\quad Sufficiency drop \(k{=}3\) & +0.39 & -0.97* & +0.86 & +0.60 & +1.02 & -0.93* & +1.19 & +0.95 & -0.06 \\
+\quad Sufficiency drop \(k{=}5\) & -0.19 & +0.15 & -0.04 & -0.07 & +0.09 & -0.63 & +0.30 & +0.11 & -0.00 \\
+\quad Sufficiency drop \(k{=}10\) & +0.69 & -0.00 & -0.32 & -0.70* & -1.01* & +0.55 & -0.55* & -0.30* & -0.37 \\
+\quad Concentration top-3 & -0.89* & -0.33 & +0.37 & -0.05 & -0.07 & -0.34 & -0.27 & -0.48 & -0.31 \\
+\quad Concentration top-5 & +0.88* & -0.30 & +0.03 & +0.42 & -0.19 & -0.10 & +0.21 & +1.02 & +0.66 \\
+\quad Concentration top-10 & +0.44 & +0.38 & +0.22 & -0.36 & -0.03 & +0.21 & -0.03 & -0.18 & -0.18 \\
+\addlinespace
+\emph{Dimension 3} & & & & & & & & & \\
+\quad Margin after removal \(m(x_{\setminus S})\) & -0.01 & -0.01 & -0.05 & -0.19 & -0.03 & -0.32 & +0.13 & -0.25* & +0.01 \\
+\quad Margin of the explanation \(m(x_S)\) & +0.27 & -0.15 & +0.14 & +0.58* & -0.17 & -0.87* & +0.47* & -0.05 & -0.05 \\
+\addlinespace
+\emph{Dimension 4} & & & & & & & & & \\
+\quad Sufficiency \(F^{+}\) & -0.27 & -0.00 & -0.32 & -0.70* & +0.06 & +0.55 & -0.55* & -0.30* & -0.13* \\
+\quad Necessity \(F^{-}\) & -0.13 & -0.19 & -0.29 & -0.15 & -0.16 & +0.09 & -0.20 & +0.00 & -0.29* \\
+\quad Asymmetry \(A\) & +0.26 & -0.13 & +0.20 & +0.66* & -0.14 & -0.15 & +0.39* & +0.32 & -0.05 \\
+\bottomrule

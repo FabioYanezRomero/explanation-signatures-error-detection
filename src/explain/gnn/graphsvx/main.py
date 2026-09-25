@@ -36,6 +36,31 @@ from .hyperparam_advisor import (
 )
 
 
+from src.explain.common.batching import build_masked_batch
+
+FAST_GRAPHSVX = os.environ.get("GRAPHSVX_FAST", "1") not in {"0", "false", "False"}
+
+
+def _batched_target_confidence(
+    model: torch.nn.Module,
+    data: Data,
+    masks: torch.Tensor,
+    predicted_class: int,
+    *,
+    chunk_size: int = 512,
+) -> torch.Tensor:
+    """Probability of ``predicted_class`` for every boolean node mask (rows of ``masks``)."""
+    if masks.numel() == 0:
+        return torch.empty(0, device=data.x.device)
+    outputs = []
+    with torch.no_grad():
+        for chunk in masks.split(max(1, chunk_size)):
+            batch = build_masked_batch(data.x, data.edge_index, chunk.to(data.x.dtype))
+            probs = torch.softmax(model(data=batch), dim=1)
+            outputs.append(probs[:, predicted_class])
+    return torch.cat(outputs, dim=0)
+
+
 class GraphSHAPExplainer:
     """Minimal SHAP-style explainer inspired by the original GraphSVX implementation."""
 
@@ -80,38 +105,57 @@ class GraphSHAPExplainer:
         sampled_combinations: List[Dict[str, object]] = []
 
         # Simplified approach: Instead of computing exact marginal contributions,
-        # we use a more efficient approximation based on coalition performance
+        # we use a more efficient approximation based on coalition performance.
+        # Coalitions are drawn first (same RNG stream as the reference loop) and
+        # scored in batches; credit assignment is vectorised.
+        coalitions: List[List[int]] = []
         for _ in range(num_samples):
             if not content_indices:
-                selected_nodes: List[int] = []
+                coalitions.append([])
             else:
                 coalition_size = random.randint(0, len(content_indices))
-                selected_nodes = random.sample(content_indices, coalition_size)
+                coalitions.append(random.sample(content_indices, coalition_size))
 
-            mask = torch.zeros(num_nodes, dtype=torch.bool, device=self.device)
+        if FAST_GRAPHSVX:
+            masks = torch.zeros(num_samples, num_nodes, dtype=torch.bool, device=self.device)
             if special_indices:
-                mask[special_indices] = True
-            mask[selected_nodes] = True
+                masks[:, special_indices] = True
+            for row, selected_nodes in enumerate(coalitions):
+                if selected_nodes:
+                    masks[row, selected_nodes] = True
+            confidences = _batched_target_confidence(self.model, data, masks, predicted_class)
+            selected = masks.clone()
+            if special_indices:
+                selected[:, special_indices] = False
+            sizes = selected.sum(dim=1).to(confidences.dtype)
+            credit = torch.where(sizes > 0, confidences / sizes.clamp(min=1), torch.zeros_like(confidences))
+            node_importance = (credit.unsqueeze(1) * selected.to(confidences.dtype)).sum(dim=0)
+            node_counter = selected.to(confidences.dtype).sum(dim=0)
+            confidence_values = confidences.detach().cpu().tolist()
+        else:
+            confidence_values = []
+            for selected_nodes in coalitions:
+                mask = torch.zeros(num_nodes, dtype=torch.bool, device=self.device)
+                if special_indices:
+                    mask[special_indices] = True
+                mask[selected_nodes] = True
+                masked_data = data.clone()
+                masked_data.x = masked_data.x.clone()
+                masked_data.x[~mask] = 0
+                masked_probs = torch.softmax(self.model(data=masked_data), dim=1)
+                coalition_confidence = float(masked_probs[0, predicted_class])
+                if selected_nodes:
+                    credit_per_node = coalition_confidence / len(selected_nodes)
+                    for node_idx in selected_nodes:
+                        node_importance[node_idx] += credit_per_node
+                        node_counter[node_idx] += 1
+                confidence_values.append(coalition_confidence)
 
-            masked_data = data.clone()
-            masked_data.x = masked_data.x.clone()
-            masked_data.x[~mask] = 0
-
-            masked_logits = self.model(data=masked_data)
-            masked_probs = torch.softmax(masked_logits, dim=1)
-            coalition_confidence = float(masked_probs[0, predicted_class])
-
-            # Distribute credit equally among coalition members (efficient approximation)
-            if selected_nodes:
-                credit_per_node = coalition_confidence / len(selected_nodes)
-                for node_idx in selected_nodes:
-                    node_importance[node_idx] += credit_per_node
-                    node_counter[node_idx] += 1
-
+        for selected_nodes, coalition_confidence in zip(coalitions, confidence_values):
             sampled_combinations.append(
                 {
                     "selected_nodes": selected_nodes,
-                    "confidence": coalition_confidence,
+                    "confidence": float(coalition_confidence),
                     "coalition_size": len(selected_nodes),
                 }
             )
@@ -467,6 +511,7 @@ def explain_request(
     precomputed_source: Optional[Path] = None,
     max_graphs: Optional[int] = None,
     fairness_config: Optional[FairnessConfig] = None,
+    seed: Optional[int] = None,
 ) -> Tuple[List[GraphSVXResult], Path, Path, Optional[Path]]:
     device = torch.device(request.device) if request.device else torch.device(
         "cuda" if torch.cuda.is_available() else "cpu"
@@ -545,6 +590,10 @@ def explain_request(
                 break
             data: Data = batch.to(device)
             label = int(data.y.item()) if hasattr(data, "y") and data.y is not None else None
+            if seed is not None:
+                # Deterministic coalition sampling per dataset-level graph index.
+                global_index = updated_request.shard_index + index * max(1, updated_request.num_shards)
+                random.seed(int(seed) * 1_000_003 + global_index)
             source = "advisor"
             candidate = precomputed_lookup.get(index)
             if fairness_advisor is not None:
@@ -672,7 +721,7 @@ def explain_request(
                 related_pred.setdefault("maskout_second_confidence", None)
                 related_pred.setdefault("maskout_contrastivity", None)
 
-            def _progressions(confidence_mask_fn, store_conf_key: str, store_drop_key: str) -> None:
+            def _progressions(confidence_mask_fn, store_conf_key: str, store_drop_key: str, mask_fn=None) -> None:
                 if origin_confidence is None or predicted_class is None:
                     related_pred.setdefault(store_conf_key, None)
                     related_pred.setdefault(store_drop_key, None)
@@ -680,19 +729,33 @@ def explain_request(
                 progression_conf: List[float] = []
                 progression_drop: List[float] = []
                 kept: List[int] = []
-                for node_idx in top_nodes_list:
-                    if node_idx < 0 or node_idx >= data.num_nodes:
-                        continue
-                    kept.append(int(node_idx))
-                    conf_value = confidence_mask_fn(kept)
-                    if conf_value is None:
-                        continue
-                    progression_conf.append(conf_value)
-                    progression_drop.append(origin_confidence - conf_value)
+                if FAST_GRAPHSVX and mask_fn is not None:
+                    prefixes: List[torch.Tensor] = []
+                    for node_idx in top_nodes_list:
+                        if node_idx < 0 or node_idx >= data.num_nodes:
+                            continue
+                        kept.append(int(node_idx))
+                        prefixes.append(mask_fn(list(kept)))
+                    if prefixes:
+                        confs = _batched_target_confidence(
+                            explainer.model, data, torch.stack(prefixes), int(predicted_class)
+                        )
+                        progression_conf = confs.detach().cpu().tolist()
+                        progression_drop = [origin_confidence - value for value in progression_conf]
+                else:
+                    for node_idx in top_nodes_list:
+                        if node_idx < 0 or node_idx >= data.num_nodes:
+                            continue
+                        kept.append(int(node_idx))
+                        conf_value = confidence_mask_fn(kept)
+                        if conf_value is None:
+                            continue
+                        progression_conf.append(conf_value)
+                        progression_drop.append(origin_confidence - conf_value)
                 related_pred[store_conf_key] = progression_conf if progression_conf else None
                 related_pred[store_drop_key] = progression_drop if progression_drop else None
 
-            def _maskout_conf(kept_nodes: List[int]) -> Optional[float]:
+            def _maskout_mask(kept_nodes: List[int]) -> torch.Tensor:
                 mask = torch.ones(data.num_nodes, dtype=torch.bool, device=device)
                 if graph_params["keep_special_tokens"] and data.num_nodes >= 2:
                     mask[0] = True
@@ -701,6 +764,21 @@ def explain_request(
                     if graph_params["keep_special_tokens"] and data.num_nodes >= 2 and idx in (0, data.num_nodes - 1):
                         continue
                     mask[idx] = False
+                return mask
+
+            def _sufficiency_mask(kept_nodes: List[int]) -> torch.Tensor:
+                mask = torch.zeros(data.num_nodes, dtype=torch.bool, device=device)
+                if graph_params["keep_special_tokens"] and data.num_nodes >= 2:
+                    mask[0] = True
+                    mask[-1] = True
+                for idx in kept_nodes:
+                    if graph_params["keep_special_tokens"] and data.num_nodes >= 2 and idx in (0, data.num_nodes - 1):
+                        continue
+                    mask[idx] = True
+                return mask
+
+            def _maskout_conf(kept_nodes: List[int]) -> Optional[float]:
+                mask = _maskout_mask(kept_nodes)
                 conf, _ = _prediction_with_mask(
                     explainer.model,
                     data,
@@ -711,14 +789,7 @@ def explain_request(
                 return conf
 
             def _sufficiency_conf(kept_nodes: List[int]) -> Optional[float]:
-                mask = torch.zeros(data.num_nodes, dtype=torch.bool, device=device)
-                if graph_params["keep_special_tokens"] and data.num_nodes >= 2:
-                    mask[0] = True
-                    mask[-1] = True
-                for idx in kept_nodes:
-                    if graph_params["keep_special_tokens"] and data.num_nodes >= 2 and idx in (0, data.num_nodes - 1):
-                        continue
-                    mask[idx] = True
+                mask = _sufficiency_mask(kept_nodes)
                 conf, _ = _prediction_with_mask(
                     explainer.model,
                     data,
@@ -728,8 +799,8 @@ def explain_request(
                 )
                 return conf
 
-            _progressions(_maskout_conf, "maskout_progression_confidence", "maskout_progression_drop")
-            _progressions(_sufficiency_conf, "sufficiency_progression_confidence", "sufficiency_progression_drop")
+            _progressions(_maskout_conf, "maskout_progression_confidence", "maskout_progression_drop", _maskout_mask)
+            _progressions(_sufficiency_conf, "sufficiency_progression_confidence", "sufficiency_progression_drop", _sufficiency_mask)
 
             results.append(
                 GraphSVXResult(
@@ -743,7 +814,7 @@ def explain_request(
             )
             per_graph_hparams.append({"graph_index": index, "source": source, **graph_params})
 
-        energy_data = energy_monitor.result
+        energy_data = getattr(energy_monitor, "result", None) or energy_monitor.get_stats()
 
     summary = {
         "method": "graphsvx",
@@ -829,6 +900,12 @@ def main(argv: Optional[List[str]] = None) -> None:  # pragma: no cover - CLI he
         default=400,
         help="Target forward pass budget when using --fair (default: 400).",
     )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Seed for coalition sampling (per-graph derived); omit to keep the legacy unseeded behaviour.",
+    )
     args = parser.parse_args(argv)
 
     request = _env_request()
@@ -900,6 +977,7 @@ def main(argv: Optional[List[str]] = None) -> None:  # pragma: no cover - CLI he
         precomputed_source=precomputed_source,
         max_graphs=max_graphs,
         fairness_config=fairness_config,
+        seed=args.seed,
     )
 
     output_path = Path("graphsvx_results.json")

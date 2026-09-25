@@ -1,0 +1,7 @@
+Highlights
+
+- A protocol to compare graph and token explainers on the same model and budget.
+- Explanation features add nothing to a language model's confidence as error signals.
+- Within the budget every explanation is sufficient and not necessary, graph or token.
+- Distilled surrogates share errors with gold-trained twins but are confident in them.
+- Explanations help a distilled surrogate only where its confidence was damaged.

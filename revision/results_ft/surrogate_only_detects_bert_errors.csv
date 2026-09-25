@@ -1,0 +1,67 @@
+dataset,method,graph,signal,auroc,auprc
+setfit_ag_news,bert,tokens,BERT confidence (reference),0.8868036687564534,0.3342144929388435
+setfit_ag_news,graphsvx,constituency,surrogate confidence,0.8116431226898655,0.2786446775770331
+setfit_ag_news,graphsvx,constituency,surrogate confidence + explanation,0.8346114179129591,0.27915189380458205
+setfit_ag_news,graphsvx,constituency,surrogate explanation,0.8260902584134239,0.26732902527530505
+setfit_ag_news,graphsvx,constituency,surrogate conf + expl + disagreement,0.8342707144854649,0.27868779654273995
+setfit_ag_news,graphsvx,syntactic,surrogate confidence,0.831588568446991,0.2962501533455513
+setfit_ag_news,graphsvx,syntactic,surrogate confidence + explanation,0.848031976088814,0.2816897167745503
+setfit_ag_news,graphsvx,syntactic,surrogate explanation,0.8476811468601528,0.284140865169513
+setfit_ag_news,graphsvx,syntactic,surrogate conf + expl + disagreement,0.8484629182737653,0.28988465467376917
+setfit_ag_news,graphsvx,window,surrogate confidence,0.8257060736044487,0.2991123973308395
+setfit_ag_news,graphsvx,window,surrogate confidence + explanation,0.8427603053107743,0.30670373290183933
+setfit_ag_news,graphsvx,window,surrogate explanation,0.8428782411125992,0.30315814649054595
+setfit_ag_news,graphsvx,window,surrogate conf + expl + disagreement,0.8430384670251797,0.3097504650765894
+setfit_ag_news,graphsvx,skipgrams,surrogate confidence,0.8302594081350091,0.302164487412467
+setfit_ag_news,graphsvx,skipgrams,surrogate confidence + explanation,0.8611788398154839,0.33335254615189347
+setfit_ag_news,graphsvx,skipgrams,surrogate explanation,0.8615347319447285,0.3365630537184625
+setfit_ag_news,graphsvx,skipgrams,surrogate conf + expl + disagreement,0.8614721902316397,0.3361416903837985
+setfit_ag_news,subgraphx,constituency,surrogate confidence,0.8116437183252282,0.27864493269566726
+setfit_ag_news,subgraphx,constituency,surrogate confidence + explanation,0.8265030337198114,0.26260044965599944
+setfit_ag_news,subgraphx,constituency,surrogate explanation,0.8168516561194535,0.254340526674062
+setfit_ag_news,subgraphx,constituency,surrogate conf + expl + disagreement,0.8262233829169991,0.263935545696802
+setfit_ag_news,subgraphx,syntactic,surrogate confidence,0.831588568446991,0.2962501533455513
+setfit_ag_news,subgraphx,syntactic,surrogate confidence + explanation,0.8416878638401388,0.2744019990128987
+setfit_ag_news,subgraphx,syntactic,surrogate explanation,0.8392627344606923,0.27652263856769166
+setfit_ag_news,subgraphx,syntactic,surrogate conf + expl + disagreement,0.8422566956115672,0.2772201562164977
+setfit_ag_news,subgraphx,window,surrogate confidence,0.8257024997922722,0.29911184295246057
+setfit_ag_news,subgraphx,window,surrogate confidence + explanation,0.8424955453920309,0.2760096828560888
+setfit_ag_news,subgraphx,window,surrogate explanation,0.8425831037903555,0.27504997568139045
+setfit_ag_news,subgraphx,window,surrogate conf + expl + disagreement,0.8431200690698767,0.282127836883096
+setfit_ag_news,subgraphx,skipgrams,surrogate confidence,0.8302594081350092,0.30216425667634933
+setfit_ag_news,subgraphx,skipgrams,surrogate confidence + explanation,0.8497069027288736,0.28295448805357865
+setfit_ag_news,subgraphx,skipgrams,surrogate explanation,0.8493516062349918,0.28020881344402765
+setfit_ag_news,subgraphx,skipgrams,surrogate conf + expl + disagreement,0.8499847666255976,0.2889986394395995
+stanfordnlp_sst2,bert,tokens,BERT confidence (reference),0.8348963601762478,0.3077422178420738
+stanfordnlp_sst2,graphsvx,constituency,surrogate confidence,0.8208548356678724,0.27825723068750396
+stanfordnlp_sst2,graphsvx,constituency,surrogate confidence + explanation,0.8165172218698031,0.2676891342725699
+stanfordnlp_sst2,graphsvx,constituency,surrogate explanation,0.8095050319749001,0.27673539935848906
+stanfordnlp_sst2,graphsvx,constituency,surrogate conf + expl + disagreement,0.8133968830901641,0.2611196534704322
+stanfordnlp_sst2,graphsvx,syntactic,surrogate confidence,0.8299929706653866,0.28831186802357905
+stanfordnlp_sst2,graphsvx,syntactic,surrogate confidence + explanation,0.7821934952937748,0.28062186696067865
+stanfordnlp_sst2,graphsvx,syntactic,surrogate explanation,0.7601796766506078,0.2280089441860257
+stanfordnlp_sst2,graphsvx,syntactic,surrogate conf + expl + disagreement,0.7786273938313303,0.25321848825502286
+stanfordnlp_sst2,graphsvx,window,surrogate confidence,0.8155056834742058,0.2644069857006641
+stanfordnlp_sst2,graphsvx,window,surrogate confidence + explanation,0.7977266103176917,0.25864086869194697
+stanfordnlp_sst2,graphsvx,window,surrogate explanation,0.796200730365011,0.2472115273419185
+stanfordnlp_sst2,graphsvx,window,surrogate conf + expl + disagreement,0.7952234814065526,0.24038119986937556
+stanfordnlp_sst2,graphsvx,skipgrams,surrogate confidence,0.8314845611809282,0.26710532191169095
+stanfordnlp_sst2,graphsvx,skipgrams,surrogate confidence + explanation,0.807499099902275,0.2666823912278645
+stanfordnlp_sst2,graphsvx,skipgrams,surrogate explanation,0.8063846931952612,0.2727786845992116
+stanfordnlp_sst2,graphsvx,skipgrams,surrogate conf + expl + disagreement,0.805681759733914,0.26139634758358093
+stanfordnlp_sst2,subgraphx,constituency,surrogate confidence,0.8208548356678724,0.27825723068750396
+stanfordnlp_sst2,subgraphx,constituency,surrogate confidence + explanation,0.8077734153993863,0.31189138460946086
+stanfordnlp_sst2,subgraphx,constituency,surrogate explanation,0.7852623999177053,0.30532877700621863
+stanfordnlp_sst2,subgraphx,constituency,surrogate conf + expl + disagreement,0.8095907555677474,0.30959649330240896
+stanfordnlp_sst2,subgraphx,syntactic,surrogate confidence,0.8299929706653866,0.28831186802357905
+stanfordnlp_sst2,subgraphx,syntactic,surrogate confidence + explanation,0.8167572479297752,0.2507637560708713
+stanfordnlp_sst2,subgraphx,syntactic,surrogate explanation,0.7889485144101359,0.2074832753880316
+stanfordnlp_sst2,subgraphx,syntactic,surrogate conf + expl + disagreement,0.8160371697498585,0.24875041755325647
+stanfordnlp_sst2,subgraphx,window,surrogate confidence,0.8155056834742058,0.2644069857006641
+stanfordnlp_sst2,subgraphx,window,surrogate confidence + explanation,0.8124539235688446,0.2830448382222606
+stanfordnlp_sst2,subgraphx,window,surrogate explanation,0.8092650059149279,0.26396454064832386
+stanfordnlp_sst2,subgraphx,window,surrogate conf + expl + disagreement,0.8089735456992474,0.270993849391339
+stanfordnlp_sst2,subgraphx,skipgrams,surrogate confidence,0.8314845611809282,0.26710532191169095
+stanfordnlp_sst2,subgraphx,skipgrams,surrogate confidence + explanation,0.824575239597442,0.29150742684662473
+stanfordnlp_sst2,subgraphx,skipgrams,surrogate explanation,0.781044799149622,0.25482731272058007
+stanfordnlp_sst2,subgraphx,skipgrams,surrogate conf + expl + disagreement,0.8215577691292197,0.2841745695794308

@@ -1,0 +1,46 @@
+%% ---------------------------------------------------------------------------
+%% Revised front matter (title, abstract, keywords) and revised Section 1.
+%% Drop-in replacement for the corresponding blocks of main.tex.
+%% ---------------------------------------------------------------------------
+
+\title{Do Explanation Signatures Detect Classification Errors? A Controlled Comparison of Graph and Token Explainers}
+
+\begin{abstract}
+Post-hoc explanations are often proposed as signals for detecting when a text classifier is wrong, and explanations over graph representations of text can expose relational structure that token-level attributions cannot. Comparing the two fairly is difficult: graph and token explainers differ in perturbation semantics, budget and sparsity, and usually explain different classifiers. We introduce a protocol that compares them on equal terms. A fine-tuned language model acts as teacher for graph neural network surrogates, so that graph and token explanations refer to the same decision function; every explainer is run on every representation under a common budget, sparsity and receptive field; and error detectors are always evaluated against majority-class and confidence baselines. The teacher--student design also shows what transfers between architectures when a language model supervises a graph network: the surrogates make largely the same errors as networks trained directly on the gold labels, so the errors belong to the instances and their features, but only the distilled networks are confident in those errors. Under the protocol, every explanation is sufficient and almost none is necessary within the budget, whatever the explainer and the representation, and neither property separates graph from token explanations; as error signals, explanation features from either family carry information about correctness, most of which is already present in the model's confidence; what they add to a distilled surrogate recovers part of what its confidence lost under distillation, without reaching the language model.
+\end{abstract}
+
+\begin{keyword}
+Graph Neural Networks \sep Explainability \sep Error Detection \sep Evaluation \sep Pattern Recognition \sep Natural Language Processing
+\end{keyword}
+
+%% ---------------------------------------------------------------------------
+\section{Introduction}\label{Introduction}
+
+Automated error detection asks whether a classifier's own behaviour reveals when its prediction is wrong. The best-established signals are confidence-based: the maximum softmax probability~\cite{hendrycks2017baseline}, the margin between the two most probable classes and the predictive entropy separate correct from incorrect predictions in a wide range of models~\cite{corbiere2019confidnet}.
+
+Post-hoc explanations have been proposed as a complementary source of such signals, on the hypothesis that a wrong prediction rests on a less coherent set of input features than a right one, and that this incoherence is visible in how importance is distributed. The evidence for this hypothesis comes mainly from settings with a shift in distribution: attribution-based features predict whether a model is correct better than its confidence does when the model is applied to a new domain~\cite{ye2022calibrating}. Outside natural language processing (NLP), SHAP-based rules flag misclassified predictions of tree-based classifiers in virtual screening~\cite{bernal2025shap}. Whether explanations add to the confidence of a text classifier on in-domain data has not been established.
+
+The second hypothesis concerns how the text is represented. Explanations of graph neural networks (GNNs) over graph representations of text have been shown to reveal structural information that word-level feature importance cannot~\cite{yuan2021structured}; a graph explanation should therefore reveal a wrong prediction more clearly than the token attributions of a large language model (LLM). The reason is that a graph explanation is a set of nodes linked by explicit syntactic or contextual relations, so whether the evidence for a prediction hangs together or is scattered over unrelated parts of the input can be read off the explanation itself, whereas token attributions form a flat list of subwords with no relations between them.
+
+Both hypotheses are difficult to test fairly. Graph and token explainers differ in their perturbation semantics, computational budget and sparsity; graph topologies and explainers are usually confounded; and a graph model trained on the same labels as an LLM is a different classifier with a different accuracy. This paper builds a protocol that controls these factors and uses it to answer three questions:
+
+\begin{enumerate}
+    \item Does the representation (graph topology versus tokens) or the explainer determine the signature of an explanation?
+    \item Do explanation-derived features detect classification errors beyond what the model's confidence already provides?
+    \item What does a graph surrogate trained as the student of a language model inherit from its teacher: its errors, its confidence, or its attributions?
+\end{enumerate}
+
+We validate on AG News and SST-2, two well-studied topic and sentiment classification benchmarks. On both, the classifiers are accurate and errors are rare (6--10\% of the test instances), so every error detector is evaluated relative to majority-class and confidence baselines.
+
+\subsection{Proposed Framework and Contributions}
+
+The framework is modular and architecture-neutral: text is converted into four graph representations; a fine-tuned LLM provides node features and supervisory labels for GNN surrogates, that is, graph networks trained to reproduce the language model's decisions (LLM-as-teacher), so that graph and token explanations refer to the same decision function; every graph explainer is applied to every topology, and a token explainer to the LLM, under a common budget of forward passes, sparsity and receptive field; and four families of explanation metrics feed error detectors that are evaluated against majority-class and confidence-based baselines. The contributions are:
+
+\begin{itemize}
+    \item \textbf{A controlled protocol for comparing explainers across architectures.} Graph and token explainers are compared on the same decision function, with standardised budget, sparsity and receptive field, two definitions of error (with respect to the gold label and to the teacher), and baseline-relative metrics (majority-class accuracy, balanced accuracy, areas under the receiver operating characteristic (ROC) and precision--recall curves, Matthews correlation coefficient) with nested confidence-only models and bootstrap confidence intervals.
+    \item \textbf{Signatures do not separate graphs from tokens.} Within the budget, every explanation on every representation is sufficient and not necessary; degrees of sufficiency differ between explainers, and neither side of the faithfulness profile separates graph from token explanations, so ``discrete versus continuous representation'' is not the relevant variable.
+    \item \textbf{Explanations as error signals, measured against confidence.} Explanation features from every explainer and representation carry information about correctness, but none that the language model's confidence does not already provide, for linear and non-linear detectors, for both error definitions and in the high-confidence regime; what they add to a distilled surrogate recovers part of the discrimination that its confidence lost under distillation, without reaching the language model.
+    \item \textbf{What transfers under LLM-as-teacher distillation.} Against a gold-trained control with identical architecture and data, distilled surrogates make the same errors on the same instances, so the errors reach the surrogate through the node features rather than through the teacher's labels, but they are confident in the teacher's errors about twice as often; no surrogate signal, alone or in committee, detects the teacher's errors beyond the teacher's own confidence, and surrogate attributions do not overlap with the teacher's beyond chance.
+\end{itemize}
+
+The remainder of the paper reviews related work (Section~2), describes the framework and the evaluation protocol (Section~3), reports the experimental setup and the results (Section~4), and concludes with the implications for evaluating explanation-based error detection (Section~5).

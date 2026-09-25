@@ -1,0 +1,900 @@
+%% 
+%% Copyright 2007-2024 Elsevier Ltd
+%% 
+%% This file is part of the 'Elsarticle Bundle'.
+%% ---------------------------------------------
+%% 
+%% It may be distributed under the conditions of the LaTeX Project Public
+%% License, either version 1.3 of this license or (at your option) any
+%% later version.  The latest version of this license is in
+%%    http://www.latex-project.org/lppl.txt
+%% and version 1.3 or later is part of all distributions of LaTeX
+%% version 1999/12/01 or later.
+%% 
+%% The list of all files belonging to the 'Elsarticle Bundle' is
+%% given in the file `manifest.txt'.
+%% 
+%% Template article for Elsevier's document class `elsarticle'
+%% with harvard style bibliographic references
+
+%\documentclass[preprint,12pt,authoryear]{elsarticle} % As per your setup
+\documentclass[preprint, times, review, 10pt]{elsarticle}
+% Your existing package list (ensure hyperref is loaded, which it is)
+\usepackage{amssymb}
+\usepackage[utf8]{inputenc}
+\usepackage{times}
+
+\usepackage{helvet}
+\usepackage{courier}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{verbatim}
+\usepackage{mathrsfs}
+\usepackage{adjustbox}
+\usepackage{caption}
+\usepackage{tabularx}
+\usepackage{placeins} 
+\usepackage{stfloats} 
+\usepackage{natbib}
+\usepackage{multirow}
+%\usepackage{algorithm}
+%\usepackage{algorithmic} 
+\usepackage{algpseudocode}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{hyperref} % Already in your list, good.
+\usepackage{algorithm2e}
+\usepackage{ragged2e}
+\usepackage[table]{xcolor}
+\usepackage{makecell}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{pdflscape}
+
+\journal{Pattern Recognition}
+
+\begin{document}
+
+\begin{frontmatter}
+
+\title{Graph-Based Explainability Patterns Outperform Token-Based Approaches for Error Detection}
+
+%% MODIFIED AUTHORS AND AFFILIATIONS
+% Use the orcid option directly within the \author command's optional arguments.
+
+% Author 1 - Corresponding Author
+\author[add1,orcid=0009-0005-5494-0166]{Fabio Yáñez-Romero\corref{cor1}}
+\ead{fabio.yanez@ua.es}
+
+% Author 2
+\author[add2,orcid=0000-0002-3076-0890]{Andrés Montoyo}
+\ead{montoyo@dlsi.ua.es}
+
+% Author 3
+\author[add2,orcid=0000-0002-8590-3000]{Armando Suárez}
+\ead{armando@dlsi.ua.es}
+
+% Author 4
+\author[add2,orcid=0000-0002-4052-7427]{Yoan Gutiérrez}
+\ead{ygutierrez@dlsi.ua.es}
+
+% Author 5
+\author[add3,orcid=0000-0003-2522-066X]{Ruslan Mitkov}
+\ead{r.mitkov@lancaster.ac.uk}
+
+% Affiliations (ensure these are full postal addresses)
+\address[add1]{University Institute for Computer Research, University of Alicante, Carretera San Vicente del Raspeig s/n, 03690 San Vicente del Raspeig, Alicante, Spain}
+\address[add2]{Department of Computing Information Systems, University of Alicante, Carretera San Vicente del Raspeig s/n, 03690 San Vicente del Raspeig, Alicante, Spain}
+\address[add3]{Lancaster University, Bailrigg, Lancaster, LA1 4YW, United Kingdom}
+
+% Corresponding author text (details from your Title-Page.pdf)
+\cortext[cor1]{Corresponding author: Fabio Yáñez-Romero.}
+
+\newpageafter{author}
+
+\begin{abstract}
+Large language models have become the dominant paradigm in Natural Language Processing, yet their explainability remains fundamentally limited, making automatic error detection challenging. This study conducts a systematic comparison of explainability signatures between discrete graph-based and continuous token-based architectures for error pattern recognition in text classification. Using text-to-graph conversion, LLM-as-teacher distillation, and unified Shapley-based attribution, we identify four complementary 
+architectural patterns that enable reliable discrimination between correct and incorrect predictions: AUC-based confidence trajectories, feature 
+concentration profiles, margin-preservation patterns, and fidelity-asymmetry signatures.
+
+We demonstrate that hierarchical graph-based architectures produce substantially sharper discriminative patterns (99.7--100.0\% error detection accuracy) compared to token-based architectures (88.1--89.6\% accuracy) under fair comparison. This performance gap persists across datasets, graph topologies, and prediction correctness conditions. Integrated logistic regression analysis reveals that all architectures rely on necessity-based features, but hierarchical discrete structures produce significantly stronger necessity signals through binary node participation, while continuous token embeddings produce attenuated signals through distributed compensatory pathways.
+
+For high-stakes applications requiring transparent automated error detection, hierarchical graph-based explainability patterns offer clear advantages over token-based approaches. Our four-dimensional evaluation framework provides a reproducible methodology for architectural signature analysis in explainability research.
+\end{abstract}
+
+
+
+\begin{keyword}
+Graph Neural Networks \sep Explainability \sep Error Detection \sep Pattern Recognition \sep Architectural Signatures \sep Natural Language Processing
+\end{keyword}
+
+\end{frontmatter}
+
+
+%% Add \usepackage{lineno} before \begin{document} and uncomment 
+%% following line to enable line numbers
+%% \linenumbers
+
+%% main text
+%%
+
+%% Use \section commands to start a section
+
+\section{Introduction}\label{Introduction}
+Automated error detection in classification systems depends on the ability to recognise discriminative patterns in model explanations—systematic differences in how architectures distribute feature importance that can serve as diagnostic signals for distinguishing correct from incorrect predictions. In natural language processing (NLP), large language models (LLMs) achieve state-of-the-art text classification performance, yet their interpretability remains constrained by subword fragmentation, distributed representations, and the limited scope of local attributions (Section \ref{explainability_lm}). Explainability in deep learning has been recognised as a critical enabler for robust pattern recognition systems~\cite{bai2021explainable}, yet the specific question of whether different architectures produce systematically different explanation signatures for error detection remains largely unexplored.
+
+These constraints motivate exploring discrete graph-based architectures as complementary representations for error detection. Graph neural networks (GNNs) offer fundamentally different attribution structures—discrete node participation, explicit topologies, and compositional aggregation—that may produce measurably distinct explanation patterns, or architectural signatures, amenable to discriminative analysis.
+
+We validate on AG-News and SST-2 as controlled testbeds for isolating architectural effects from domain-specific confounds before extension to specialised high-stakes applications.
+
+
+\subsection{Fundamental Hypothesis and Research Questions}\label{subsec:hypothesis}
+
+We hypothesise that \textbf{discrete graph-based and continuous token-based architectures produce fundamentally different explanation signatures that enable discriminative classification between correct and incorrect predictions}. This hypothesis generates four testable predictions, each targeting a complementary dimension of pattern analysis:
+
+\begin{enumerate}
+
+    \item Discriminative Capacity—GNNs exhibit strong Deletion and Insertion AUC separation between correct and incorrect predictions, reflecting concentrated feature dependence. LLMs show weaker separation due to distributed multi-pathway contributions.
+
+    \item Feature Concentration—GNNs produce steep, monotonic confidence degradation reflecting discrete message passing, while LLMs show gradual, distributed degradation.
+
+    \item Margin Preservation—GNNs demonstrate sharp margin collapse when necessary features are removed, while LLMs show softer degradation with less categorical boundary separation.
+
+    \item Fidelity Asymmetry—GNNs exhibit pronounced deletion-insertion asymmetry (\(M^- \gg M^+\)) due to binary feature participation, while LLMs show balanced profiles reflecting compensatory pathways.
+    
+\end{enumerate}
+
+By stratifying analysis across graph topologies, datasets, class labels, and prediction correctness, we isolate whether observed differences reflect genuine architectural properties or experimental confounds.
+
+
+
+\subsection{Proposed Framework and Contributions}
+
+This study introduces a \textbf{modular, architecture-neutral framework} for recognising discriminative patterns in model explanations, applied to NLP text classification. Input text is transformed into structured graph representations (constituency, dependency, window, skip-gram), and their explanation signatures are systematically compared with token-based alternatives through unified Shapley-based attribution.
+
+\textbf{Key contributions include}:
+
+\begin{itemize}
+    \item \textbf{Cross-architecture evaluation via unified attribution}. An LLM-as-teacher distillation framework enables GNN surrogates to replicate LLM predictions while offering topology-specific interpretability, paired with standardised Shapley methods (SubgraphX, GraphSVX, TokenSHAP) ensuring methodological parity for fair signature comparison.
+
+    \item \textbf{Four-dimensional evaluation protocol for signature analysis}. A systematic protocol isolating architectural effects through stratification by graph type, dataset, class label, and prediction correctness—with complementary metrics (Deletion/Insertion AUC, progression patterns, margin preservation, fidelity asymmetry) defining a multi-dimensional discriminative feature space.
+
+    \item \textbf{Empirical evidence of topology-dependent discriminative capacity}. Hierarchical graph structures achieve 99.7–100\% error-detection accuracy, compared with 88.1–89.6\% for continuous token representations, and persist across datasets, topologies, and correctness conditions—establishing architectural signatures as a viable feature class for automated error detection.
+
+\end{itemize}
+
+This extends the paradigm of explainability-based knowledge distillation~\cite{sun2025expkd} from visual architectures to cross-modal linguistic settings, where the teacher's attribution patterns—not just its predictions—inform the evaluation framework.
+
+\section{Related Work}
+
+To contextualise the proposed modular pipeline, we review (I) recent advances and limitations in language model explainability, highlighting evaluation challenges and the need for structured alternatives, (II) the state of explainability methods for graph neural networks, with emphasis on recent benchmarking frameworks that demonstrate advantages for structured inputs, and (III) modern approaches for automatic, high-fidelity structured parsing and text-to-graph translation.
+
+\subsection{Explainability in Language Models} \label{explainability_lm}
+
+The rise of large language models has brought urgency for transparency and responsible AI deployment. Luo and Specia~\cite{luo2024understandingutilizationsurveyexplainability} provide a comprehensive survey of explainability approaches for LLMs, while Zhao et al.~\cite{zhao2024surveyllm-xai} systematically categorise existing methods by their scope and granularity. Palikhe et al.~\cite{palikhe2025survey-llm-xai} extend this analysis to emerging architectural variants, highlighting persistent interpretability gaps.
+
+Recent benchmarking efforts have systematically demonstrated these challenges. ALMANACS~\cite{mills2025almanacssimulatabilitybenchmarklanguage} reveals that current LLM explanation methods fail simulatability tests, while PRobELM~\cite{yuan2025probelmplausibilityrankingevaluation} shows plausibility rankings frequently diverge from human intuitions. Structured graph-based representations have re-emerged as essential foundations for improved explainability, offering node- and relation-level granularity that enables explicit, traceable pathways between input elements and predicted outputs~\cite{palikhe2025survey-llm-xai,luo2024understandingutilizationsurveyexplainability}.
+
+
+Recent efforts to simplify gradient-based attributions into more interpretable forms~\cite{rodrigues2024gad} demonstrate the demand for explanation methods that produce clearer, more actionable signals—a motivation that extends naturally to structured graph representations.
+
+\subsection{Explainability for Graph Neural Networks} \label{explainability_graphs}
+
+Graph neural networks (GNNs) offer unique advantages for explainability due to their inherently structured, node and edge-based architecture, where each node and relationship corresponds to a human-understandable entity or feature~\cite{agarwal2023graphxai}. Perturbation-based methods systematically infer feature importance by observing prediction changes: SubgraphX~\cite{yuan2021explainabilitygraphneuralnetworks} employs Monte Carlo tree search for contiguous subgraph identification, GraphSVX~\cite{duval2021graphsvxshapleyvalueexplanations} generalises Shapley values to distributed node coalitions, and GNNX-BENCH~\cite{kosan2024gnnxbenchunravellingutilityperturbationbased} provides a comprehensive benchmarking framework for evaluating such methods across diverse graph structures.
+
+Recent advances include self-explainable graph convolutional architectures that integrate frequency-adaptive mechanisms directly into the network structure~\cite{wei2024selfexplainable}, offering intrinsic interpretability as an alternative to post-hoc methods.
+
+Recent systematic benchmarks---including GraphFramEx~\cite{amara2022graphframex} and GNNX-BENCH~\cite{kosan2024gnnxbenchunravellingutilityperturbationbased}---demonstrate that, for structured inputs, post-hoc GNN explainers provide explanations more aligned with explicit semantic features and exhibiting greater stability across domain variations than token-based neural explainers. Complementary evaluation strategies, such as feature perturbation augmentation for reliability assessment of importance estimators~\cite{brocki2023fpa}, address the broader challenge of ensuring that fidelity metrics themselves are robust—a concern that motivates our multi-dimensional evaluation design. However, explanation effectiveness depends critically on the quality and semantic richness of the underlying graph representation~\cite{xue2025llm-gnn-xai}, which motivates a systematic evaluation across diverse text-to-graph conversion strategies.
+
+At the graph level, recent work on semi-supervised active learning for graph classification~\cite{ju2024graphspa} demonstrates that graph-level prediction tasks benefit from selective instance strategies—an insight that aligns with our approach of analysing per-instance explanation signatures for error detection.
+
+
+\subsection{Structured Graph Representations in NLP} \label{text_trees}
+
+Hierarchical representations capture syntactic structure through Universal Dependencies~\cite{de-marneffe-etal-2021-universal}, which provide standardised annotation frameworks across languages, and through end-to-end graph dialogue systems~\cite{yang-etal-2020-graphdialog} that integrate graph structures into neural architectures. Non-hierarchical approaches encode distributional semantics: ConGraT establishes joint graph-text embeddings through contrastive pretraining~\cite{brannon-etal-2024-congrat}, while graph structures have been leveraged to detect hallucinations in language model outputs~\cite{nonkes-etal-2024-leveraging}, demonstrating the versatility of proximity-based graph formulations.
+
+The combination of graph convolutional networks with pre-trained language model embeddings has proven effective for tasks such as fake news detection~\cite{zhang2024gbca}, where graph topology captures propagation patterns that complement BERT's semantic representations—a paradigm closely related to our LLM-as-teacher framework. Heterogeneous network representations that leverage role-based node 
+features~\cite{sun2023heterogeneous} further illustrate the flexibility of graph-based encodings for capturing diverse relational structures, supporting our systematic evaluation across multiple text-to-graph conversion strategies. Advances in neural parsing~\cite{bauer-manning-2025-high} and GNN integrated workflows~\cite{yang2020stronglyincrementalconstituencyparsing} now enable reliable, large-scale graph extraction across languages and domains.
+
+
+\section{Methodology} \label{methodology}
+
+Our methodology re-frames text classification as a graph-based modelling and explainability challenge. Rather than relying exclusively on token-level or transformer-based representations, we construct a range of graph structures derived from text—constituency trees, syntactic trees, window graphs, and skip-gram graphs—to preserve both compositional and contextual information at varying levels of granularity.
+
+This approach enables categorisation of sentences as a graph classification problem, leveraging advances in graph neural networks (GNNs) and the wealth of resources from graph-based learning. We adopt an LLM-as-a-teacher framework for GNNs, where a fine-tuned LLM provides node-level labels and embeddings. A GNN surrogate is then trained to approximate the teacher’s outputs, offering a more human-interpretable model whose internal reasoning can be more easily examined. This setup facilitates direct comparison between the LLM and the GNN, as both are subjected to Shapley-based post-hoc analysis for attributing feature importance. Building on graph-aware distillation for textual graphs~\cite{mavromatis2023traingnnteachergraphaware}, active knowledge distillation from LLMs~\cite{li2024enhancinggraphneuralnetworks}, and joint LLM-GNN knowledge transfer~\cite{hu2024largelanguagemodelmeets}, our approach extends this paradigm to multiple graph types while emphasising transparency and diagnostic interpretability.
+
+Figure~\ref {Figure_2} illustrates the overall methodology and internal workflow of our modular framework, designed for flexible adaptation across diverse graph formulations, GNN architectures, and post-hoc explainability modules. Each stage contributes to building a transparent pipeline linking linguistic structure, model behaviour, and interpretability outcomes.
+
+
+\begin{figure}[htbp]
+    \centering
+    % Architecture figure on top
+    \includegraphics[width=\linewidth]{Figure_1.pdf}
+    \caption{End-to-end pipeline: text instances are converted to multiple graph types, embedded via fine-tuned LLM, trained as GNN surrogates via Graph Convolutional layers, and evaluated through Shapley-based explainability under unified fairness constraints.}
+    \label{Figure_2}
+
+    % Small vertical space between figures
+    \vspace{1em}
+
+    % New pedagogical explainability figure below
+    \includegraphics[width=\linewidth]{Figure_2.pdf}
+    \caption{Each trained model is wrapped with their respective explainability module. From these modules, we obtain agnostic metrics that can be compared across modules, those metrics are used for train each logistic regression model for error detection based on our base model prediction.}
+    \label{fig:explainability_pedagogic}
+\end{figure}
+
+
+
+The following subsections describe each component in detail:
+\begin{enumerate}
+
+\item \textbf{Text-to-Graph Conversion}: Systematic transformation of each dataset instance into multiple graph representations—constituency, dependency, window-based, and skip-gram graphs (\ref{data_preprocessing}).
+
+\item \textbf{Language Model Fine-tuning and Embedding Generation}: The LLM is first fine-tuned on the target classification task to align its representations with domain-specific semantics. Subsequently, we extract node-level embeddings and the model’s predictions, which serve as supervisory signals for the GNN under the LLM-as-a-teacher paradigm (\ref{fine-tuning}).
+
+\item \textbf{Graph Neural Network Training}: Specialise GNN architectures to approximate the LLM’s outputs.  LLM is used as a teacher for the obtained graphs, both using its specific embeddings and labels in the process (\ref{gnn}).
+
+\item \textbf{Post-Hoc Explainability}: Applying perturbation-based explainability techniques to both the GNN and the LLM, enabling a systematic comparison between their attribution behaviours under a unified mathematical principle (Shapley values). The resulting contributions are analysed at the node/word level, as each graph node corresponds to a token in the original text (\ref{explainability}).
+
+\item \textbf{Explainability Dimensions Evaluation}: Performing comparative distribution analyses of attribution outputs from each model, integrating Shapley-based importance measures across all the different dimensions considered (\ref{sec:evaluation_framework}).
+\end{enumerate}
+
+To validate the importance of the different dimensions considered in our evaluation of the explanations, we trained one logistic regression model per architecture and dataset, evaluating the performance and the relative weight of each dimension in the process (see \ref{logistic_regression}). A general overview of the entire process is shown in Figure \ref{fig:explainability_pedagogic}, indicating the interaction between the explainability modules and the logistic regression for the given predictions.
+
+The code for reproducing all experiments is available via GitHub\footnote{\href{https://anonymous.4open.science/r/Graph-Neural-Networks-Enable-Superior-Error-Detection-in-NLP-Explainability-than-Language-Models-A792/README.md}{Repository for Experiment Reproducibility}}.
+
+\subsection{Text-to-Graph Conversion} \label{data_preprocessing}
+
+To enable text classification with graph neural networks, each sentence is systematically transformed into multiple graph representations capturing both hierarchical and non-hierarchical linguistic structures.
+
+\textbf{Hierarchical graphs} (constituency and dependency trees) are extracted via the Stanza library~\cite{qi2020stanza}. We employ the \texttt{combined\_charlm} model for POS tagging and dependency parsing, which incorporates character-level language model features for improved accuracy on morphologically complex tokens, and the \texttt{combined\_nocharlm} model for lemmatization. Constituency parsing uses the \texttt{ptb3-revised\_charlm} model trained on Penn Treebank 3 (revised) with character-level language modeling to produce phrase structures. Dependency parsing extracts head-dependent relations with morphological annotations (POS tags, lemmas, morphological features), while constituency parsing produces Penn Treebank-style phrase structures. Both yield tree structures where nodes represent linguistically-enriched words and edges encode hierarchical relationships.
+
+
+\textbf{Non-hierarchical graphs} (window-based and skip-gram) capture distributional semantics through co-occurrence patterns. Window graphs connect tokens within a specified context window; skip-gram graphs connect tokens separated by fixed intervals. Nodes carry POS annotations, and edges represent proximity or co-occurrence relations.
+
+All graphs are configured with unique node identifiers and topology-appropriate directionality, preserving explicit linguistic hierarchies and contextual patterns for downstream explainability analysis (see Figure~\ref{Figure_2}, Section 1).
+
+
+\subsection{Language Model Fine-tuning and Embedding Generation} \label{fine-tuning}
+
+Task-adapted embeddings are extracted from Transformer models fine-tuned on classification targets. We use models with [CLS] tokens to capture global sequence semantics, which also serve as embeddings for special tokens in constituency graphs, ensuring consistent handling of structural information. Models such as BERT~\cite{devlin2019bert} effectively encode both sentence-level and word-level features (see Figure~\ref{Figure_2}, Section 2).
+
+\subsection{Graph Neural Network Training} \label{gnn}
+
+Graphs are converted to GNN-compatible tensor format with node embeddings extracted from the fine-tuned language model. Word nodes use averaged subtoken hidden states, preserving semantic and positional information. Phrase nodes in tree-based graphs use [CLS] token embeddings to capture global sequence meaning. This unified pipeline ensures consistent node features across all graph types.
+
+\textbf{Training Under LLM-as-Teacher Paradigm}: The GNN is trained to replicate the fine-tuned LLM's predictions using Graph Convolutional Network (GCN) layers~\cite{kipf2017semisupervisedclassificationgraphconvolutional} for message passing, where each layer aggregates neighbouring node representations via normalised graph convolution. Building on recent advances in GNN distillation~\cite{mavromatis2023traingnnteachergraphaware, li2024enhancinggraphneuralnetworks, hu2024largelanguagemodelmeets}, and informed by efficiency-oriented distillation strategies~\cite{xu2023computation}, our approach extends this paradigm to multiple graph types while emphasising transparency and diagnostic interpretability. Multi-level knowledge distillation with positional encoding enhancement~\cite{xu2025mlkdpe} demonstrates that preserving structural 
+information during GNN-to-MLP transfer improves performance—a principle that parallels our use of topology-specific embeddings in the teacher-student framework. LLM classifications serve as supervisory labels, transferring knowledge to each GNN. Identical training and evaluation metrics enable direct performance comparison. This setup facilitates analysis of how linguistic structure and graph topology influence explainability results (see Figure~\ref{Figure_2}, Section 3).
+
+
+\subsection{Post-Hoc Explainability}
+\label{explainability}
+
+Post-hoc explainability techniques identify which input elements have the most significant influence on a model already trained. The selected explainers—SubgraphX \cite{yuan2021explainabilitygraphneuralnetworks}, GraphSVX \cite{duval2021graphsvxshapleyvalueexplanations}, and TokenSHAP \cite{goldshmidt2024tokenshapinterpretinglargelanguage}—cover complementary structural configurations across graph and language representations, ensuring conceptual consistency and faithfulness across modalities (see Figure~\ref{Figure_2}, Section 4).
+
+\subsubsection{Explainability Modules}
+
+For tree-structured graphs (constituency and dependency), we adopt SubgraphX, which uses Monte Carlo Tree Search to identify contiguous explanatory subgraphs that preserve syntactic coherence. For non-tree graphs (window-based and skip-gram), we employ GraphSVX, which generalises Shapley-value reasoning to distributed node coalitions suitable for semantic co-occurrence patterns. For language models, we use TokenSHAP , aggregating token-level Shapley attributions at the word level for structural alignment with graph explainers. This unified Shapley-based foundation enables fair cross-architecture comparison (Section \ref{sec:crossfair}).
+ 
+\subsubsection{Cross-Model Fair Explainability} \label{sec:crossfair}
+ 
+Our experimental design adapts GraphFramEx~\cite{amara2022graphframex} fairness principles to multimodal settings following the M4 Benchmark~\cite{10.5555/3666122.3666203}. We ensure evaluation parity across architectures by standardising five dimensions: budget (2000 forward passes per instance), sparsity (20\% of input elements), aligned context windows (full self-attention for LLMs $\Leftrightarrow$ two-hop receptive fields for GNNs), method-adapted sampling strategies (polynomial approximation for TokenSHAP, coalition sampling for GraphSVX, MCTS-guided expansion for SubgraphX), and atomic-level granularity. The Supplementary Material details dimension specifications and standardised nomenclature across models and architectures, isolating intrinsic explainer behaviour from computational asymmetries.
+
+
+\subsection{Multidimensional Evaluation Framework} \label{sec:evaluation_framework}
+
+This framework evaluates whether explanations enable reliable error detection through inherent structural properties across four complementary dimensions (see Figure~\ref{Figure_2}, Section 5).
+
+\subsubsection{Stratified Evaluation Protocol}
+
+We employ stratified evaluation across five complementary dimensions to isolate explainability patterns from dataset and model-specific biases: (1) \textbf{By Explainability Module} (SubgraphX for tree graphs, GraphSVX for non-tree graphs, TokenSHAP for LLMs); (2) \textbf{By Input Construction Method} (syntactic, constituency, window-based, skipgram); (3) \textbf{By Dataset} (AG-News, SST-2); (4) \textbf{By Class Label} (per-class stratification); (5) \textbf{By Correctness} (correct vs. incorrect predictions). Core terminology is standardised in the Supplementary Material (Table S2), enabling direct metric comparison between heterogeneous architectures.
+
+\subsubsection{Evaluated Dimensions}
+
+Our evaluation framework assesses explainability-based error detection through four complementary dimensions, each targeting distinct architectural properties of how models encode feature importance. These dimensions are intentionally orthogonal—success in one does not guarantee success in others—enabling systematic isolation of whether discrete graph structures and continuous token representations produce fundamentally different explanation signatures. Dimensions 1 and 2 evaluate holistic and granular confidence trajectories during feature perturbation, while Dimensions 3 and 4 assess decision boundary stability and causal necessity-sufficiency structure through quadrant-based categorisation (consistency across predicted labels in dimension 3 and traditional faithfulness metrics in Dimension 4).
+
+Table~\ref{tab:evaluation_dimensions} summarises the four evaluation dimensions. Mathematical formulations and detailed metrics are provided in the Supplementary Material (Table S3).
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.1}
+\caption{Four-dimensional evaluation framework for cross-architecture explainability comparison}
+\label{tab:evaluation_dimensions}
+\begin{tabular}{@{}p{0.18\textwidth}p{0.25\textwidth}p{0.27\textwidth}p{0.22\textwidth}@{}}
+\toprule
+\textbf{Dimension} & \textbf{Objective} & \textbf{Methodology} & \textbf{Interpretation} \\
+\midrule
+
+\textbf{AUC Discriminative Capacity} 
+& Measure whether aggregate AUC values—computed by progressively adding (insertion) or removing (deletion) features—can discriminate between correct and incorrect predictions
+& Compute per-instance Deletion AUC (\(M_-\)) and Insertion AUC (\(M_+\)) as holistic metrics integrating confidence changes. Apply thresholds [0.1, ..., 1.0] to AUC distributions and measure error/correctness detection rates
+& Significant distribution differences enable threshold-based error detection.
+\\
+\midrule
+
+\textbf{Feature Ranking Stability} 
+& Verify consistency in importance concentration according to the top-k features
+& Measure sufficiency drop progression (\(M_k^-\)) and maskout drop progression (\(M_k^+\)) for \(k \in \{1,3,5,10\}\) 
+& Steep drops indicate concentrated features (discrete structures); gradual decay indicates distributed importance (continuous representations)
+\\
+\midrule
+
+\textbf{Consistency across Outcomes} 
+& Investigate whether explanations preserve decision confidence via margin between top class and second candidate
+& Compute origin, masked, and maskout margins using confidence difference between top class and second-highest class 
+& Necessary features cause sharp maskout margin collapse with elevated masked margins. Correct predictions show robust margins; incorrect show brittle margins
+\\
+\midrule
+
+\textbf{Behavioural Faithfulness} 
+& Quantify whether features are causally necessary and sufficient through complementary operations
+& Measure deletion fidelity (\(M_-\)), insertion fidelity (\(M_+\)), and asymmetry index: \(A = (M_- - M_+)/(|M_-| + |M_+|)\) 
+& High \(M_-\) indicates necessity; high \(M_+\) indicates sufficiency. GNNs show high asymmetry (\(A > 0\)); LLMs show balance (\(A \approx 0\))
+\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\paragraph{Separability Metric for Error Detection}
+For Dimensions 3 and 4, which evaluate quadrant-based classification patterns (sufficiency-necessity and faithfulness categories), we introduce a \textbf{Separability} metric to quantify error detection capacity. This metric combines the weighted standard deviations of correct and incorrect prediction distributions across categorical boundaries:
+
+\[
+\text{Separability} = \sqrt{\text{SD}^2_{\text{correct,weighted}} + \text{SD}^2_{\text{incorrect,weighted}}}
+\]
+
+where:
+\begin{itemize}
+    \item $\text{SD}_{\text{correct,weighted}}$ is the weighted standard deviation of correct prediction percentages across categories.
+    \item $\text{SD}_{\text{incorrect,weighted}}$ is the weighted standard deviation of incorrect prediction percentages across categories.
+    \item Weights are determined by each category's prevalence (\% of Total instances).
+\end{itemize}
+
+Higher Separability values indicate distinct distribution patterns between correct and incorrect predictions across quadrants, enabling reliable error classification.
+
+This architecture-agnostic metric quantifies how different architectures create distributional distinctions for automated quality control.
+
+
+\subsection{Error Signal Analysis} \label{logistic_regression}
+
+To assess whether the four evaluation dimensions collectively encode sufficient information to discriminate correct from incorrect predictions, we apply stratified logistic regression that consolidates dimension-specific metrics into a unified error detection framework. This approach quantifies the relative contribution of each dimension to error detection capacity and validates whether observed patterns reflect genuine architectural signatures.
+
+For each test instance \(i\), we construct a standardised feature vector aggregating the metrics defined in the Supplementary Material (Table S3) from all four evaluation dimensions. We model the probability of correct classification via binary logistic regression:
+
+\begin{equation}
+\log\left(\frac{P(\text{correct} = 1 \mid \mathbf{x}_i)}{1 - P(\text{correct} = 1 \mid \mathbf{x}_i)}\right) = \beta_0 + \sum_{d \in \mathcal{D}} \beta_d \cdot f_d(\mathbf{x}_i)
+\end{equation}
+
+where \(\mathcal{D} = \{\text{AUC}, \text{Fidelity}, \text{Consistency}, \text{Progression}\}\) and \(f_d(\mathbf{x}_i)\) aggregates features from dimension \(d\).
+
+To isolate architectural effects from confounds, we train separate models for each combination of dataset (AG-News, SST-2), explainability module (SubgraphX, GraphSVX, TokenSHAP), graph type, and class label. Statistical validation employs 200 bootstrap resamples to compute 95\% confidence intervals for coefficients \(\{\beta_d\}\), with significance assessed via \(t\)-statistics under \(H_0: \beta_d = 0\), complemented by 10-fold stratified cross-validation to evaluate generalisation capacity. The dimension-level coefficients quantify which architectural properties contribute most decisively to error detection, with systematic differences between GNN-based and LLM-based explainers revealing whether discrete graph structures and continuous token representations produce fundamentally distinct error detection signatures.
+
+
+
+
+
+\section{Experiments} \label{experiments}
+
+The modular methodology described above allows us to swap different components—language models, text-to-graph conversions, GNN architectures, and explainability modules—adapting our study to a range of underlying graph structures and tasks. Below, we review our experimental setup, data, and results.
+
+
+
+
+
+
+\subsection{Configuration} \label{configuration}
+
+For all experiments, we begin by fine-tuning a language model for each NLP task; the best model is used to generate embeddings for the GNN input graphs. BERT serves as the backbone of the LM. GNN training is performed using a Graph Convolutional Network (GCN) with a multilayer perceptron (MLP) classifier head, with GNN targets derived from the LM outputs.
+
+To ensure high-quality model interpretability, \textbf{we select the explainability module based on the graph structure}: \textit{SubgraphX} is used for tree-structured graphs (constituency/syntactic), while \textit{GraphSVX} is used for window and skip-gram graphs. This ensures that, regardless of topology, the most relevant set of nodes/subgraphs—either connected or distributed—is identified and scored for each prediction.
+
+For each dataset and explainability module, hyperparameters were determined empirically through targeted pilot experiments. Specifically, we used a validation subset from each dataset to systematically explore a small range of plausible parameter settings for each module (e.g., subgraph size and MCTS rollouts for SubgraphX; node/neighbourhood selection criteria for GraphSVX). The chosen settings were balanced to achieve fidelity, sparsity, and stability, as specified in the module documentation and recent literature. They were fixed for the full evaluation set to ensure a fair and reproducible comparison across tasks and graph types. This manual search yielded robust, interpretable explanations without resorting to automated hyperparameter optimisation frameworks.
+
+
+\subsection{Datasets}
+
+We perform experiments on the \textit{AG News}~\cite{10.5555/2969239.2969312} and \textit{SST-2}~\cite{socher-etal-2013-recursive} datasets, which cover topic classification and sentiment analysis, respectively. Both datasets are well-studied, enabling results to be compared to past work—while providing a rich testbed to validate interpretability in both tree-based and proximity-based graph structures.
+
+
+
+\section{Results and Discussion} \label{discussion}
+
+This section validates our four-dimensional evaluation framework across graph-based and token-based architectures. After establishing LLM-as-teacher baseline performance (Section~\ref{sec:llm_teacher}), we evaluate error detection across AUC discrimination (Section~\ref{sec:dim1}), feature concentration (Section~\ref{sec:dim2}), margin preservation (Section~\ref{sec:dim3}), and fidelity structure (Section~\ref{sec:dim4}), then integrate dimensions via logistic regression (Section~\ref{sec:logistic}).
+
+
+\subsection{LLM as a Teacher} \label{sec:llm_teacher}
+
+Table~\ref{tab:performance_comparison} reports the precision, recall, and F1 scores for both the fine-tuned language model and the corresponding GNN for each task. In this case, the performance against the ground truth for each dataset is reported in the corresponding column. The capability of each GNN in replicating the LLM responses is indicated in the “Teacher” column. In general, the replication of the LLM responses by each GNN is easier to achieve for the Ag-news dataset; nevertheless, the agreement between both models is always over 90\%. The worst performant GNN in this sense uses the constituency graphs, which add noise due to the special nodes considered.
+
+
+\begin{table}[H]
+\centering
+\caption{Classification performance for BERT teacher and GCN models with different graph types. Teacher: replicating BERT predictions; GT: ground truth labels.}
+\label{tab:performance_comparison}
+\tiny
+\begin{minipage}[t]{.48\linewidth}
+\centering
+\textbf{AG News}
+\vspace{0.2em}
+
+\begin{tabular}{@{}llcccccc@{}}
+\toprule
+& & \multicolumn{3}{c}{\textit{\textbf{Teacher}}} & \multicolumn{3}{c}{\textit{\textbf{Ground Truth}}} \\
+\cmidrule(lr){3-5} \cmidrule(lr){6-8}
+\textbf{Model} & \textbf{Type} & \textit{R} & \textit{P} & \textit{F\textsubscript{1}} & \textit{R} & \textit{P} & \textit{F\textsubscript{1}} \\
+\midrule
+\textbf{BERT} & \textbf{Tokens} & -- & -- & -- & .938 & .938 & .938 \\
+\addlinespace[0.2em]
+\multirow{4}{*}{\textbf{GCN}} 
+ & \textbf{Syntactic}    & .958 & .958 & .958 & .921 & .920 & .920 \\
+ & \textbf{Constituency} & .938 & .938 & .938 & .905 & .904 & .904 \\
+ & \textbf{Skip-grams}   & .965 & .966 & .965 & .926 & .926 & .926 \\
+ & \textbf{Window}       & .965 & .965 & .965 & .926 & .926 & .926 \\
+\bottomrule
+\end{tabular}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{.48\linewidth}
+\centering
+\textbf{SST-2}
+\vspace{0.2em}
+
+\begin{tabular}{@{}llcccccc@{}}
+\toprule
+& & \multicolumn{3}{c}{\textit{\textbf{Teacher}}} & \multicolumn{3}{c}{\textit{\textbf{Ground Truth}}} \\
+\cmidrule(lr){3-5} \cmidrule(lr){6-8}
+\textbf{Model} & \textbf{Type} & \textit{R} & \textit{P} & \textit{F\textsubscript{1}} & \textit{R} & \textit{P} & \textit{F\textsubscript{1}} \\
+\midrule
+\textbf{BERT} & \textbf{Tokens} & -- & -- & -- & .917 & .917 & .917 \\
+\addlinespace[0.2em]
+\multirow{4}{*}{\textbf{GCN}} 
+ & \textbf{Syntactic}    & .919 & .919 & .919 & .875 & .875 & .875 \\
+ & \textbf{Constituency} & .929 & .930 & .929 & .890 & .890 & .890 \\
+ & \textbf{Skip-grams}   & .917 & .917 & .917 & .878 & .878 & .878 \\
+ & \textbf{Window}       & .933 & .934 & .933 & .888 & .888 & .888 \\
+\bottomrule
+\end{tabular}
+\end{minipage}
+\end{table}
+
+
+
+\subsection{Dimension 1: AUC Discriminative Capacity} \label{sec:dim1}
+
+We evaluate discriminative capacity through Area Under the Curve (AUC) as a holistic metric quantifying total confidence change during feature addition (insertion) or removal (deletion):
+
+\begin{itemize}
+    \item \textbf{Insertion AUC}: Features ranked by importance are progressively added to a completely masked baseline, measuring confidence recovery as each feature is reintroduced. 
+    
+    \item \textbf{Deletion AUC}: Features ranked by importance are progressively removed from the complete original input, measuring confidence degradation as each feature is deleted. 
+\end{itemize}
+
+Across 10 evenly spaced AUC thresholds $[0.1, 0.2, \ldots, 1.0]$, we compute the proportion of incorrect predictions successfully identified (Error Detection Rate) and correct predictions properly retained (Correctness Detection Rate) at each threshold.
+
+These detection rates are plotted across all thresholds (Figures~\ref{fig:insertion_auc} and~\ref{fig:deletion_auc}), yielding Equal Error Rate (EER) analysis. The intersection point identifies the optimal threshold that maximises simultaneous detection of both correct and erroneous classifications. Higher y-axis values indicate stronger discriminative capacity between correct and incorrect predictions.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{Figure_3.png}
+    \caption{Error and correctness detection rates plotted across insertion AUC thresholds, indicating the mean per dataset.}
+    \label{fig:insertion_auc}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{Figure_4.png}
+    \caption{Error and correctness detection rates plotted across deletion AUC thresholds, indicating the mean per dataset.}
+    \label{fig:deletion_auc}
+\end{figure}
+
+\paragraph{\textbf{Key Finding}}
+Graph-based explainers show topology-specific AUC patterns: SubgraphX (hierarchical) achieves strong Insertion AUC separation while showing limited Deletion discrimination, whereas GraphSVX (proximity) demonstrates strong Deletion AUC with minimal Insertion separation. TokenSHAP maintains moderate discrimination across both metrics, indicating that graph architectures exhibit limited separation via deletion over token-based approaches.
+
+
+\subsection{Dimension 2: Feature Ranking Stability and Importance Concentration} \label{sec:dim2}
+ 
+This dimension examines how importance concentrates within the top-$k$ features for $k \in \{1, 3, 5, 10\}$, providing a granular view of deletion and insertion operations. We analyse \textbf{maskout progression}—cumulative confidence drop as top-$k$ features are removed—and \textbf{sufficiency progression}—cumulative confidence gain as top-$k$ features are added. The key diagnostic signal is the separation between correct and incorrect predictions.
+
+\paragraph{Concentration Patterns Across Architectures and Datasets}
+Figure~\ref{fig:progression_combined} reveals concentration-based separation that reinforces the architectural differences observed in Dimension 1. For maskout progression (Figure~\ref{fig:maskout_progression}), GNN-based methods demonstrate clear separation between correct and incorrect predictions across top-$k$ values, particularly pronounced in AG News, while SST-2 shows similar but less pronounced patterns. TokenSHAP exhibits weaker separation, indicating LLM-based explainers produce less distinguishable concentration patterns for error detection. For sufficiency progression (Figure~\ref{fig:sufficiency_progression}), GNN-based methods maintain moderate separation, though less pronounced than maskout, while TokenSHAP shows minimal separation with correct and incorrect predictions following similar reconstruction trajectories.
+
+\paragraph{\textbf{Key Finding}}
+GNN-based explainers produce distinct concentration profiles for correct versus incorrect predictions, with maskout progression showing stronger discriminative signals than sufficiency progression. TokenSHAP exhibits weaker concentration-based separation, confirming that discrete graph structures enable clearer feature importance patterns than continuous token representations.
+
+
+
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Figure_5a.png}
+        \caption{Maskout Progression drop concentration.}
+        \label{fig:maskout_progression}
+    \end{subfigure}
+    
+    \vspace{0.1em}
+    
+    \begin{subfigure}{\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Figure_5b.png}
+        \caption{Sufficiency Progression drop concentration.}
+        \label{fig:sufficiency_progression}
+    \end{subfigure}
+    \caption{Progression drop concentration for the top k features across the evaluated datasets and explainability modules.}
+    \label{fig:progression_combined}
+\end{figure}
+
+
+\subsection{Dimension 3: Consistency Across Prediction Outcomes} \label{sec:dim3}
+We evaluate explainability consistency by measuring how explanation-identified features affect the decision boundary between the predicted class and the second-highest class probability. For each instance, we compute sufficiency preservation (masked margin / original margin) and necessity preservation (maskout margin / original margin). High sufficiency preservation indicates that highlighted features alone maintain the decision boundary; low necessity preservation indicates margin collapse when features are removed, providing evidence of true necessity. 
+
+We classify explanations into four quadrants: Sufficient-Necessary (high sufficiency, low necessity—ideal precise identification), Sufficient-Redundant (both high—alternative pathways exist), Insufficient-Necessary (low sufficiency, high necessity—features required but insufficient alone), and Insufficient-Redundant (both low—features neither necessary nor sufficient alone).
+
+\begin{table*}[t]
+\centering
+\caption{Sufficiency-necessity classification patterns with separability metrics across datasets}
+\label{tab:sufficiency_comparison}
+\small
+
+\begin{subtable}[t]{0.48\textwidth}
+\centering
+\caption{AG News}
+\label{tab:agnews_suff}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llrrrr}
+\toprule
+Method & Category & \% & Correct & Incorrect & $|\Delta|$ \\
+\midrule
+\multirow{5}{*}{\shortstack[l]{SubgraphX\\(Constituency)}} 
+& Insufficient-Redundant & 2.05 & 0.00 & 100.00 & 100.00 \\
+& Insufficient-Necessary & 0.59 & 60.00 & 40.00 & 20.00 \\
+& Sufficient-Redundant & 24.87 & 92.12 & 7.88 & 84.23 \\
+& Sufficient-Necessary & 72.47 & 97.31 & 2.69 & 94.63 \\
+\cmidrule{2-6}
+& \textit{Mean Sep. (Weighted)} $\pm$ SD & -- & 14.04 & 14.04 & $91.71 \pm 77.47$ \\
+& \textit{Separability} & -- & -- & -- & 19.85 \\
+\midrule
+\multirow{5}{*}{\shortstack[l]{SubgraphX\\(Syntactic)}} 
+& Insufficient-Redundant & 1.99 & 37.09 & 62.91 & 25.83 \\
+& Insufficient-Necessary & 0.38 & 75.86 & 24.14 & 51.72 \\
+& Sufficient-Redundant & 38.54 & 97.78 & 2.22 & 95.56 \\
+& Sufficient-Necessary & 59.09 & 96.66 & 3.34 & 93.32 \\
+\cmidrule{2-6}
+& \textit{Mean Sep. (Weighted)} $\pm$ SD & -- & 8.48 & 8.48 & $92.68 \pm 49.12$ \\
+& \textit{Separability} & -- & -- & -- & 12.00 \\
+\midrule
+\multirow{5}{*}{\shortstack[l]{GraphSVX\\(Window)}} 
+& Insufficient-Redundant & 0.00 & 0.00 & 0.00 & 0.00 \\
+& Insufficient-Necessary & 0.00 & 0.00 & 0.00 & 0.00 \\
+& Sufficient-Redundant & 88.76 & 99.10 & 0.90 & 98.19 \\
+& Sufficient-Necessary & 11.24 & 76.00 & 24.00 & 51.99 \\
+\cmidrule{2-6}
+& \textit{Mean Sep. (Weighted)} $\pm$ SD & -- & 7.30 & 7.30 & $93.00 \pm 23.10$ \\
+& \textit{Separability} & -- & -- & -- & 10.32 \\
+\midrule
+\multirow{5}{*}{\shortstack[l]{GraphSVX\\(Skipgrams)}} 
+& Insufficient-Redundant & 0.08 & 100.00 & 0.00 & 100.00 \\
+& Insufficient-Necessary & 0.18 & 50.00 & 50.00 & 0.00 \\
+& Sufficient-Redundant & 88.53 & 98.77 & 1.23 & 97.53 \\
+& Sufficient-Necessary & 11.21 & 79.69 & 20.31 & 59.39 \\
+\cmidrule{2-6}
+& \textit{Mean Sep. (Weighted)} $\pm$ SD & -- & 6.34 & 6.34 & $93.08 \pm 40.43$ \\
+& \textit{Separability} & -- & -- & -- & 8.97 \\
+\midrule
+\multirow{5}{*}{TokenSHAP} 
+& Insufficient-Redundant & 22.59 & 90.74 & 9.26 & 81.48 \\
+& Insufficient-Necessary & 1.64 & 59.20 & 40.80 & 18.40 \\
+& Sufficient-Redundant & 73.63 & 96.07 & 3.93 & 92.14 \\
+& Sufficient-Necessary & 2.13 & 74.69 & 25.31 & 49.38 \\
+\cmidrule{2-6}
+& \textit{Mean Sep. (Weighted)} $\pm$ SD & -- & 5.78 & 5.78 & $87.61 \pm 28.88$ \\
+& \textit{Separability}  & -- & -- & -- & \textbf{8.17} \\
+\bottomrule
+\end{tabular}
+}
+\end{subtable}
+\hfill
+\begin{subtable}[t]{0.48\textwidth}
+\centering
+\caption{SST-2}
+\label{tab:sst2_suff}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llrrrr}
+\toprule
+Method & Category & \% & Correct & Incorrect & $|\Delta|$ \\
+\midrule
+\multirow{5}{*}{\shortstack[l]{SubgraphX\\(Constituency)}} 
+& Insufficient-Redundant & 4.01 & 0.00 & 100.00 & 100.00 \\
+& Insufficient-Necessary & 0.23 & 100.00 & 0.00 & 100.00 \\
+& Sufficient-Redundant & 44.95 & 87.76 & 12.24 & 75.51 \\
+& Sufficient-Necessary & 50.80 & 97.07 & 2.93 & 94.13 \\
+\cmidrule{2-6}
+& \textit{Mean Sep. (Weighted)} $\pm$ SD & -- & 18.76 & 18.76 & $86.01 \pm 82.72$ \\
+& \textit{Separability} & -- & -- & -- & 26.53 \\
+\midrule
+\multirow{5}{*}{\shortstack[l]{SubgraphX\\(Syntactic)}} 
+& Insufficient-Redundant & 3.10 & 0.00 & 100.00 & 100.00 \\
+& Insufficient-Necessary & 0.00 & 0.00 & 0.00 & 0.00 \\
+& Sufficient-Redundant & 43.23 & 94.43 & 5.57 & 88.86 \\
+& Sufficient-Necessary & 53.67 & 91.86 & 8.14 & 83.72 \\
+\cmidrule{2-6}
+& \textit{Mean Sep. (Weighted)} $\pm$ SD & -- & 16.42 & 16.42 & $89.91 \pm 89.34$ \\
+& \textit{Separability} & -- & -- & -- & 23.23 \\
+\midrule
+\multirow{5}{*}{\shortstack[l]{GraphSVX\\(Window)}} 
+& Insufficient-Redundant & 0.11 & 100.00 & 0.00 & 100.00 \\
+& Insufficient-Necessary & 0.00 & 0.00 & 0.00 & 0.00 \\
+& Sufficient-Redundant & 83.49 & 98.21 & 1.79 & 96.43 \\
+& Sufficient-Necessary & 16.40 & 68.53 & 31.47 & 37.06 \\
+\cmidrule{2-6}
+& \textit{Mean Sep. (Weighted)} $\pm$ SD & -- & 10.99 & 10.99 & $86.70 \pm 28.86$ \\
+& \textit{Separability} & -- & -- & -- & 15.54 \\
+\midrule
+\multirow{5}{*}{\shortstack[l]{GraphSVX\\(Skipgrams)}} 
+& Insufficient-Redundant & 0.11 & 100.00 & 0.00 & 100.00 \\
+& Insufficient-Necessary & 0.00 & 0.00 & 0.00 & 0.00 \\
+& Sufficient-Redundant & 84.52 & 97.15 & 2.85 & 94.30 \\
+& Sufficient-Necessary & 15.37 & 61.94 & 38.06 & 23.88 \\
+\cmidrule{2-6}
+& \textit{Mean Sep. (Weighted)} $\pm$ SD & -- & 12.70 & 12.70 & $83.49 \pm 34.62$ \\
+& \textit{Separability} & -- & -- & -- & 17.96 \\
+\midrule
+\multirow{5}{*}{TokenSHAP} 
+& Insufficient-Redundant & 31.65 & 91.67 & 8.33 & 83.33 \\
+& Insufficient-Necessary & 3.44 & 76.67 & 23.33 & 53.33 \\
+& Sufficient-Redundant & 55.73 & 94.44 & 5.56 & 88.89 \\
+& Sufficient-Necessary & 9.17 & 80.00 & 20.00 & 60.00 \\
+\cmidrule{2-6}
+& \textit{Mean Sep. (Weighted)} $\pm$ SD & -- & 4.95 & 4.95 & $83.26 \pm 15.04$ \\
+& \textit{Separability} & -- & -- & -- & \textbf{7.00} \\
+\bottomrule
+\end{tabular}
+}
+\end{subtable}
+\end{table*}
+
+\paragraph{Quadrant Distribution and Separation Capacity}
+Table~\ref{tab:sufficiency_comparison} reveals distinct margin preservation patterns across architectures. Hierarchical GNN explainers (SubgraphX) predominantly concentrate in the Sufficient-Necessary quadrant, indicating precise feature identification where highlighted subgraphs both maintain margins when isolated and collapse margins when removed. Non-hierarchical GNN explainers (GraphSVX) concentrate in the Sufficient-Redundant regime, where distributed node coalitions preserve margins through overlapping receptive fields. TokenSHAP exhibits broader distribution across quadrants, reflecting continuous token representations that preserve predictions via distributed semantic pathways. All GNN-based explainers substantially outperform TokenSHAP, with hierarchical structures achieving the highest separability, demonstrating that discrete graph structures enable sharper categorical boundaries for distinguishing correct from incorrect predictions. The role of consistency regularisation in graph contrastive learning~\cite{lee2024graph} suggests that the distributional properties of proximity-based graph representations may inherently favour redundant feature identification, consistent with our observation that GraphSVX concentrates in the Sufficient-Redundant regime.
+
+\paragraph{\textbf{Key Finding}}
+Hierarchical structures achieve the highest separability (SubgraphX-Constituency: 19.85–26.25), while non-hierarchical graphs maintain moderate separability (10.32–15.54). Language model explanations show substantially lower separability (7.42–8.17), confirming that graph-based architectures create sharper categorical boundaries for error detection than token-based approaches.
+
+
+\subsection{Dimension 4: Behavioural Faithfulness and Fidelity Asymmetry} \label{sec:dim4}
+We assess faithfulness through per-instance fidelity metrics that quantify necessity-sufficiency structure. Fidelity-plus (F\textsuperscript{+}) measures confidence gain when inserting highlighted features into a neutral baseline (feature sufficiency); Fidelity-minus (F\textsuperscript{-}) measures confidence drop when removing features from the original input (feature necessity). 
+
+Instances are classified into four quadrants: Faithful (high F\textsuperscript{+}, high F\textsuperscript{-}—features both necessary and sufficient), Redundant (high F\textsuperscript{+}, low F\textsuperscript{-}—sufficient but not necessary), Incomplete (low F\textsuperscript{+}, high F\textsuperscript{-}—necessary but insufficient alone), and Unfaithful (low F\textsuperscript{+}, low F\textsuperscript{-}—neither necessary nor sufficient).
+
+\paragraph{Quadrant Distribution and Error Signal Strength} 
+Table~\ref{tab:faithfulness_comparison} demonstrates that all GNN-based explainers achieve substantially higher Separability than TokenSHAP across both datasets. Hierarchical explainers (SubgraphX) show selective Faithful categorisation with strong predictive power—instances classified as Faithful exhibit near-perfect correctness rates while Unfaithful categories concentrate errors. Non-hierarchical explainers (GraphSVX) demonstrate broader Faithful categorisation while maintaining superior separability, indicating that proximity-based graphs identify joint necessity-sufficiency for most instances, though with less extreme differentiation than tree-structured approaches. TokenSHAP exhibits substantially weaker categorical boundaries with relatively uniform correctness rates across all faithfulness categories, indicating that continuous token representations maintain predicted class confidence through compensatory pathways that obscure the causal necessity-sufficiency structure captured by discrete graph architectures.
+
+
+% Required packages in preamble:
+% \usepackage{booktabs, multirow, subcaption}
+\begin{table*}[t]
+\centering
+\caption{Faithfulness classification patterns with separability metrics across datasets}
+\label{tab:faithfulness_comparison}
+\small
+
+\begin{subtable}[t]{0.48\textwidth}
+\centering
+\caption{AG News}
+\label{tab:agnews_faith}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llrrrr}
+\toprule
+Method & Category & \% & Correct & Incorrect & $|\Delta|$ \\
+\midrule
+\multirow{5}{*}{\shortstack[l]{SubgraphX\\(Constituency)}} 
+& Unfaithful & 0.38 & 13.79 & 86.21 & 72.41 \\
+& Incomplete & 41.20 & 91.09 & 8.91 & 82.18 \\
+& Redundant & 0.86 & 15.38 & 84.62 & 69.23 \\
+& Faithful & 57.56 & 97.44 & 2.56 & 94.88 \\
+\cmidrule{2-6}
+& \textit{Mean Sep. (Weighted)} $\pm$ SD & -- & 9.36 & 9.36 & $89.34 \pm 79.81$ \\
+& \textit{Separability} & -- & -- & -- & 13.24 \\
+\midrule
+\multirow{5}{*}{\shortstack[l]{SubgraphX\\(Syntactic)}} 
+& Unfaithful & 1.05 & 48.75 & 51.25 & 2.50 \\
+& Incomplete & 21.34 & 89.83 & 10.17 & 79.65 \\
+& Redundant & 1.76 & 53.73 & 46.27 & 7.46 \\
+& Faithful & 75.84 & 99.15 & 0.85 & 98.30 \\
+\cmidrule{2-6}
+& \textit{Mean Sep. (Weighted)} $\pm$ SD & -- & 8.40 & 8.40 & $91.71 \pm 43.89$ \\
+& \textit{Separability} & -- & -- & -- & 11.89 \\
+\midrule
+\multirow{5}{*}{\shortstack[l]{GraphSVX\\(Window)}} 
+& Unfaithful & 0.00 & 0.00 & 0.00 & 0.00 \\
+& Incomplete & 17.18 & 82.01 & 17.99 & 64.01 \\
+& Redundant & 0.33 & 100.00 & 0.00 & 100.00 \\
+& Faithful & 82.49 & 99.51 & 0.49 & 99.01 \\
+\cmidrule{2-6}
+& \textit{Mean Sep. (Weighted)} $\pm$ SD & -- & 6.60 & 6.60 & $93.00 \pm 40.64$ \\
+& \textit{Separability} & -- & -- & -- & 9.34 \\
+\midrule
+\multirow{5}{*}{\shortstack[l]{GraphSVX\\(Skipgrams)}} 
+& Unfaithful & 0.09 & 100.00 & 0.00 & 100.00 \\
+& Incomplete & 16.26 & 82.52 & 17.48 & 65.05 \\
+& Redundant & 0.61 & 93.48 & 6.52 & 86.96 \\
+& Faithful & 83.04 & 99.30 & 0.70 & 98.61 \\
+\cmidrule{2-6}
+& \textit{Mean Sep. (Weighted)} $\pm$ SD & -- & 6.19 & 6.19 & $93.08 \pm 14.00$ \\
+& \textit{Separability} & -- & -- & -- & 8.76 \\
+\midrule
+\multirow{5}{*}{TokenSHAP} 
+& Unfaithful & 8.87 & 89.61 & 10.39 & 79.23 \\
+& Incomplete & 10.20 & 89.03 & 10.97 & 78.06 \\
+& Redundant & 35.71 & 94.66 & 5.34 & 89.31 \\
+& Faithful & 45.22 & 95.02 & 4.98 & 90.05 \\
+\cmidrule{2-6}
+& \textit{Mean Sep. (Weighted)} $\pm$ SD & -- & 2.19 & 2.19 & $87.61 \pm 5.54$ \\
+& \textit{Separability} & -- & -- & -- & \textbf{3.10} \\
+\bottomrule
+\end{tabular}
+}
+\end{subtable}
+\hfill
+\begin{subtable}[t]{0.48\textwidth}
+\centering
+\caption{SST-2}
+\label{tab:sst2_faith}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llrrrr}
+\toprule
+Method & Category & \% & Correct & Incorrect & $|\Delta|$ \\
+\midrule
+\multirow{5}{*}{\shortstack[l]{SubgraphX\\(Constituency)}} 
+& Unfaithful & 1.61 & 7.14 & 92.86 & 85.71 \\
+& Incomplete & 55.05 & 83.75 & 16.25 & 67.50 \\
+& Redundant & 0.57 & 80.00 & 20.00 & 60.00 \\
+& Faithful & 42.78 & 98.93 & 1.07 & 97.86 \\
+\cmidrule{2-6}
+& \textit{Mean Sep. (Weighted)} $\pm$ SD & -- & 12.86 & 12.86 & $80.73 \pm 71.07$ \\
+& \textit{Separability} & -- & -- & -- & 18.19 \\
+\midrule
+\multirow{5}{*}{\shortstack[l]{SubgraphX\\(Syntactic)}} 
+& Unfaithful & 1.26 & 0.00 & 100.00 & 100.00 \\
+& Incomplete & 33.94 & 89.86 & 10.14 & 79.73 \\
+& Redundant & 3.44 & 10.00 & 90.00 & 80.00 \\
+& Faithful & 61.35 & 99.44 & 0.56 & 98.88 \\
+\cmidrule{2-6}
+& \textit{Mean Sep. (Weighted)} $\pm$ SD & -- & 19.33 & 19.33 & $91.74 \pm 90.18$ \\
+& \textit{Separability} & -- & -- & -- & 27.33 \\
+\midrule
+\multirow{5}{*}{\shortstack[l]{GraphSVX\\(Window)}} 
+& Unfaithful & 0.11 & 100.00 & 0.00 & 100.00 \\
+& Incomplete & 22.13 & 74.09 & 25.91 & 48.19 \\
+& Redundant & 0.23 & 100.00 & 0.00 & 100.00 \\
+& Faithful & 77.52 & 98.82 & 1.18 & 97.63 \\
+\cmidrule{2-6}
+& \textit{Mean Sep. (Weighted)} $\pm$ SD & -- & 10.27 & 10.27 & $86.70 \pm 22.12$ \\
+& \textit{Separability} & -- & -- & -- & 14.52 \\
+\midrule
+\multirow{5}{*}{\shortstack[l]{GraphSVX\\(Skipgrams)}} 
+& Unfaithful & 0.11 & 0.00 & 100.00 & 100.00 \\
+& Incomplete & 19.15 & 67.07 & 32.93 & 34.13 \\
+& Redundant & 0.80 & 85.71 & 14.29 & 71.43 \\
+& Faithful & 79.93 & 97.85 & 2.15 & 95.70 \\
+\cmidrule{2-6}
+& \textit{Mean Sep. (Weighted)} $\pm$ SD & -- & 12.50 & 12.50 & $83.72 \pm 75.60$ \\
+& \textit{Separability} & -- & -- & -- & 17.68 \\
+\midrule
+\multirow{5}{*}{TokenSHAP} 
+& Unfaithful & 2.64 & 69.57 & 30.43 & 39.13 \\
+& Incomplete & 11.01 & 82.29 & 17.71 & 64.58 \\
+& Redundant & 24.08 & 90.48 & 9.52 & 80.95 \\
+& Faithful & 62.27 & 94.66 & 5.34 & 89.32 \\
+\cmidrule{2-6}
+& \textit{Mean Sep. (Weighted)} $\pm$ SD & -- & 5.34 & 5.34 & $83.26 \pm 19.15$ \\
+& \textit{Separability} & -- & -- & -- & \textbf{7.55} \\
+\bottomrule
+\end{tabular}
+}
+\end{subtable}
+\end{table*}
+
+\paragraph{\textbf{Key Finding}}
+Hierarchical GNN explainers achieve the strongest faithfulness separation (SubgraphX-Constituency: 18.41–45.41), while non-hierarchical graphs show moderate separability (13.96–19.14). TokenSHAP exhibits minimal separability (3.12–3.30), demonstrating that discrete graph structures produce sharper fidelity distinctions than continuous token representations.
+
+
+\vspace{0.5em}
+\noindent\textbf{Supplementary Quadrant Visualisations.} Additional per-class quadrant visualisations and detailed category distributions for Dimensions 3 and 4 are available in the project repository.
+\vspace{0.5em}
+
+\subsection{Integrated Error Signal Analysis via Logistic Regression} \label{sec:logistic}
+
+Table~\ref{tab:logistic_accuracy} presents classification accuracy for error detection via stratified logistic regression integrating signals from all four evaluation dimensions. Results reveal topology-dependent performance patterns across graph architectures. Hierarchical GNN explainers (SubgraphX) achieve near-perfect error detection on both constituency and syntactic graphs (99.7--100.0\%), substantially outperforming token-based explainability (88.1--89.6\%). Non-hierarchical GNN explainers (GraphSVX) demonstrate moderate performance (86.5--93.6\%), with effectiveness varying by dataset and proximity encoding strategy.
+
+Dimension weight analysis (Supplementary Material, Tables S4--S5) reveals that AUC provides the dominant error signal on AG News (35-41\% for GNNs), while TokenSHAP relies more on Consistency (42.5\%) yet achieves lower accuracy—indicating that separation strength drives performance gaps. On SST-2, weights become more balanced (AUC 32-38\%, Progression 11-27\%), with hierarchical GNNs achieving near-perfect accuracy through strong signals across all dimensions. All architectures predominantly rely on necessity-based features according to the most important feature in each dimension from its logistic regression, but hierarchical structures produce substantially stronger necessity signals than continuous representations. Heterophily-aware attention mechanisms~\cite{wang2025hagat} represent one promising direction for extending our evaluation framework to GNN architectures that explicitly model non-homophilic graph structures, potentially improving error detection in texts with complex semantic relationships.
+
+
+These integrated results validate the core architectural hypothesis: hierarchical discrete graph structures enable superior error detection by creating sharp, compounding discriminative signals across complementary evaluation frameworks. Non-hierarchical proximity graphs yield topology-specific advantages that yield moderate improvements over continuous token representations, whereas tree-structured message passing provides the systematic separation required for automated quality control in high-stakes applications.
+
+\begin{table}[htbp]
+\centering
+\caption{Classification accuracy for error detection via stratified logistic regression across explainability modules and graph representations. Best results are in \textbf{bold}, second-best are \underline{underlined}. Values represent mean ± standard deviation across 10-fold cross-validation and 200 bootstrap resamples.}
+\label{tab:logistic_accuracy}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llcccc}
+\toprule
+\textbf{Dataset} & \textbf{Graph Type} & \textbf{CV Accuracy} & \textbf{CV Std} & \textbf{Bootstrap Accuracy} & \textbf{Bootstrap Std} \\
+\midrule
+\multicolumn{6}{l}{\textit{Graph Neural Network Methods}} \\
+AG News & \textbf{Constituency} & \textbf{0.999} & \textbf{0.002} & \textbf{1.000} & \textbf{0.000} \\
+AG News & \underline{Syntactic} & \underline{0.997} & \underline{0.004} & \underline{0.998} & \underline{0.002} \\
+AG News & Skipgrams & 0.936 & 0.042 & 0.942 & 0.037 \\
+AG News & Window & 0.925 & 0.049 & 0.931 & 0.042 \\
+\midrule
+SST-2 & \textbf{Constituency} & \textbf{1.000} & \textbf{0.000} & \textbf{1.000} & \textbf{0.000} \\
+SST-2 & \underline{Syntactic} & \underline{0.999} & \underline{0.005} & \underline{0.999} & \underline{0.001} \\
+SST-2 & Skipgrams & 0.886 & 0.065 & 0.900 & 0.017 \\
+SST-2 & Window & 0.865 & 0.057 & 0.882 & 0.032 \\
+\midrule
+\multicolumn{6}{l}{\textit{Large Language Model Method}} \\
+AG News & Tokens & 0.881 & 0.053 & 0.887 & 0.045 \\
+SST-2 & Tokens & 0.896 & 0.043 & 0.914 & 0.021 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\section{Conclusion and Future Work}
+
+This study formalises explanation-based error detection as a discriminative pattern recognition problem. Through a four-dimensional evaluation framework---encompassing AUC discriminative capacity, feature concentration profiles, margin preservation consistency, and behavioural faithfulness---we demonstrate that discrete graph-based architectures produce fundamentally sharper discriminative signatures than continuous token-based representations. The integrated logistic regression analysis confirms that all four dimensions contribute complementary signals: dimension-level weights vary across architectures and datasets, with hierarchical GNNs achieving near-perfect error detection (99.7--100.0\%) through compounding necessity signals, while token-based approaches plateau at 88.1--89.6\% due to compensatory pathways in continuous embeddings.
+
+\paragraph{\textbf{Strengths}}
+The principal strengths of the proposed framework lie in its modularity and methodological rigour. The architecture-neutral design allows any combination of text-to-graph conversion, GNN backbone, and explainability module to be evaluated under identical fairness constraints, so that observed differences stem from the architectures rather than the evaluation setup. The unified Shapley-based attribution foundation provides a mathematically principled basis for cross-architecture comparison, while the stratified evaluation protocol---controlling for dataset, graph type, class label, and prediction correctness---systematically isolates confounding variables. The orthogonality of the four evaluation dimensions ensures that the observed architectural differences are not artefacts of a single metric but reflect multi-faceted distinctions in how discrete and continuous representations encode feature importance.
+
+\paragraph{\textbf{Limitations}}
+The evaluation relies on two general-domain English benchmarks (AG-News and SST-2), and generalisability to morphologically rich languages, domain-specific corpora, or tasks beyond classification remains to be established. Additionally, the framework employs a single LLM backbone (BERT) and a single GNN architecture (GCN); extending the comparison to larger transformer variants and more expressive graph architectures (e.g., Graph Attention Networks, GraphSAGE) would strengthen the generality of the observed signatures. These constraints reflect deliberate methodological choices to isolate architectural effects under controlled conditions, and the modular design facilitates such extensions without structural changes.
+
+\paragraph{\textbf{Benefits to the field}}
+The four-dimensional protocol can serve as an automated quality control layer that flags potentially erroneous predictions based on their explanation signatures, without requiring ground-truth labels at inference time. The modular architecture enables researchers to integrate new graph construction methods, GNN variants, or explainability modules into the evaluation pipeline with minimal adaptation. Beyond NLP, the architectural signature framework generalises to any classification setting where structured and unstructured representations coexist, including molecular property prediction, social network analysis, and computer vision tasks amenable to graph formulation.
+
+\paragraph{\textbf{Future work}}
+Several directions merit investigation: (i) evaluating the framework on domain-specific datasets and generation tasks, where graph-based explainability could serve as post-hoc quality judges of LLM outputs; (ii) investigating the mechanisms underlying dimension compounding, specifically why proximity-based graphs achieve individual-dimension advantages yet weaker integrated performance; (iii) exploring hybrid architectures that combine hierarchical syntactic structure with distributional semantic proximity; (iv) testing language models with restricted attention mechanisms to clarify whether continuous representations fundamentally limit necessity signal strength; and (v) replacing logistic regression with non-linear classifiers to reveal higher-order interactions between evaluation dimensions.
+
+
+
+
+
+
+
+
+\section*{CRediT authorship contribution statement}
+
+\textbf{Fabio Y\'{a}\~{n}ez-Romero:} Conceptualisation, Methodology, Software, Validation, Formal analysis, Investigation, Data curation, Writing -- original draft, Visualisation.
+\textbf{Andr\'{e}s Montoyo:} Supervision, Writing -- review \& editing, Project administration, Funding acquisition.
+\textbf{Armando Su\'{a}rez:} Supervision, Writing -- review \& editing.
+\textbf{Yoan Guti\'{e}rrez:} Supervision, Writing -- review \& editing.
+\textbf{Ruslan Mitkov:} Supervision, Writing -- review \& editing.
+
+
+\section*{Acknowledgments}
+This work was supported by the University of Alicante, the Spanish Ministry of Science and Innovation, the Generalitat Valenciana, and the European Regional Development Fund (ERDF) through the following funding: COOLANG: Technological Resources for Intelligent Viral Analysis, with grant reference PID2021-122263OB-C22. VIVES: ‘Pla de Tecnologies de la Llengua per al valencià’ project (2022/TL22/00215334), funded by \url{MCIN/AEI/10.13039/501100011033} and “ERDF A way of making Europe”. NL4DISMIS: Natural Language Technologies for dealing with dis- and misinformation with grant reference CIPROM/2021/021.
+
+
+\section*{Declaration of Generative AI and AI-assisted technologies in the writing process}
+
+During the preparation of this work, no generative AI or AI-assisted tools were used in any stage of the manuscript preparation, including writing, data analysis, figure creation, or code development. All figures presented in this manuscript were created entirely by the authors using standard software tools. No AI-generated or AI-altered images were used in this work.
+
+
+\bibliographystyle{elsarticle-num}
+
+
+% Loading bibliography database
+\setlength{\bibsep}{2pt plus 0.5pt minus 0.5pt}
+\bibliography{references}
+
+
+% To print the credit authorship contribution details
+%\printcredits
+
+\end{document}
+
+

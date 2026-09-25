@@ -262,34 +262,51 @@ def clean_graph_whitespace_nodes(graph):
                 graph.add_edge(parent, child)
         graph.remove_node(node)
 
-def _load_finetuned_weights_if_any(model, weights_path):
+def _load_finetuned_weights_if_any(model, weights_path, *, strict: bool = True):
+    """Load a fine-tuned encoder state_dict (e.g. ``model_epoch_4.pt``) into the base model.
+
+    The checkpoints written by the fine-tuning step are ``BertForSequenceClassification``
+    state_dicts, so the encoder keys carry the ``bert.`` prefix (``model.base_model_prefix``)
+    and the classifier head is stored alongside. Before 2026-09-18 this loader only
+    stripped ``module.`` and therefore matched 0 keys, silently leaving the base weights in
+    place; it now strips the base-model prefix as well and, when ``strict`` is set, refuses
+    to continue unless every encoder tensor of the base model was loaded.
+    """
     if not weights_path:
         return model
     import torch
     if not os.path.isfile(weights_path):
+        if strict:
+            raise FileNotFoundError(f"Weights file not found: {weights_path}")
         print(f"[warn] Weights file not found: {weights_path}; using base model weights.")
         return model
-    try:
-        sd = torch.load(weights_path, map_location='cpu')
-        # unpack common wrappers
-        if isinstance(sd, dict) and 'state_dict' in sd and isinstance(sd['state_dict'], dict):
-            sd = sd['state_dict']
-        # strip potential 'module.' prefixes
-        cleaned = {}
-        for k, v in sd.items():
-            nk = k[7:] if k.startswith('module.') else k
-            cleaned[nk] = v
-        # keep only keys present in the base model (ignore classifier heads etc.)
-        base_sd = model.state_dict()
-        filtered = {k: v for k, v in cleaned.items() if k in base_sd}
-        missing, unexpected = model.load_state_dict(filtered, strict=False)
-        print(f"[info] Loaded finetuned weights: {weights_path}")
-        if missing:
-            print(f"[info] Missing keys (ok): {len(missing)}")
-        if unexpected:
-            print(f"[info] Ignored unexpected keys (heads, etc.): {len(unexpected)}")
-    except Exception as e:
-        print(f"[warn] Failed to load finetuned weights '{weights_path}': {e}; using base model weights.")
+    sd = torch.load(weights_path, map_location='cpu')
+    # unpack common wrappers
+    if isinstance(sd, dict) and 'state_dict' in sd and isinstance(sd['state_dict'], dict):
+        sd = sd['state_dict']
+    prefix = getattr(model, 'base_model_prefix', '') or ''
+    cleaned = {}
+    for k, v in sd.items():
+        nk = k[7:] if k.startswith('module.') else k
+        if prefix and nk.startswith(prefix + '.'):
+            nk = nk[len(prefix) + 1:]
+        cleaned[nk] = v
+    # keep only keys present in the base model (ignore classifier heads etc.)
+    base_sd = model.state_dict()
+    filtered = {k: v for k, v in cleaned.items() if k in base_sd and tuple(v.shape) == tuple(base_sd[k].shape)}
+    missing, unexpected = model.load_state_dict(filtered, strict=False)
+    # buffers such as position_ids are not part of the checkpoint; only count parameters
+    param_names = {n for n, _ in model.named_parameters()}
+    loaded_params = param_names & set(filtered)
+    missing_params = param_names - set(filtered)
+    print(f"[info] Loaded finetuned weights: {weights_path} ({len(loaded_params)}/{len(param_names)} parameter tensors)")
+    if missing_params:
+        print(f"[info] Parameter tensors kept from the base model: {len(missing_params)}")
+    if unexpected:
+        print(f"[info] Ignored unexpected keys (heads, etc.): {len(unexpected)}")
+    if strict and missing_params:
+        raise RuntimeError(f"Finetuned checkpoint {weights_path} did not cover {len(missing_params)} parameter tensors "
+                           f"of the base model (e.g. {sorted(missing_params)[:3]}); refusing to fall back to base weights.")
     return model
 
 

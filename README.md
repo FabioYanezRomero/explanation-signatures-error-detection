@@ -1,351 +1,115 @@
-# Graph Neural Networks Enable Superior Error Detection in NLP Explainability than Language Models
+# Do Explanation Signatures Detect Classification Errors? A Controlled Comparison of Graph and Token Explainers
 
-Official code repository for the paper *"Graph Neural Networks Enable Superior Error Detection in NLP Explainability than Language Models"*.
+Code, results and manuscript sources for the paper *"Do Explanation Signatures Detect Classification Errors? A Controlled Comparison of Graph and Token Explainers"* (Yáñez-Romero, Montoyo, Suárez, Gutiérrez and Mitkov; under review at *Pattern Recognition*, manuscript PR-D-26-08604).
 
----
-
-## 🎯 Key Contributions
-
-This research demonstrates that **graph-based explainability methods systematically outperform language model-based approaches** for detecting classification errors in NLP systems.
-
-### Main Findings
-
-| Metric | GNN-based (SubgraphX/GraphSVX) | LLM-based (TokenSHAP) |
-|--------|-------------------------------|----------------------|
-| **Error Detection Accuracy** | 99.7–100.0% | 88.1–89.6% |
-| **AUC Separation** | Clear discrimination | Overlapping distributions |
-| **Fidelity Patterns** | Consistent quadrant placement | Inconsistent patterns |
-
-### Why GNNs Outperform LLMs for Explainability
-
-1. **Discrete vs. Continuous**: GNNs operate on discrete graph structures, producing cleaner feature attribution signals
-2. **Structural Awareness**: Graph representations preserve linguistic relationships (syntax, constituency) that inform explanations
-3. **Compression Benefits**: The knowledge distillation from LLM → GNN acts as a regularizer, producing more robust predictions
-4. **Subgraph Semantics**: GNN explainers identify meaningful substructures rather than individual tokens
-
-### Graph Structure Hierarchy and Error Detection
-
-A key finding is that **graph structures more divergent from LLM message-passing patterns produce stronger error detection signals**:
-
-| Graph Type | Structure | Similarity to LLM | Error Detection |
-|------------|-----------|-------------------|-----------------|
-| **Constituency** | Hierarchical tree | Low (phrase structure) | **Strongest** |
-| **Syntactic** | Dependency tree | Low (grammatical relations) | **Strong** |
-| **Skip-gram** | Co-occurrence graph | Medium | Moderate |
-| **Window** | Proximity graph | High (similar to attention) | Weaker |
-
-**Interpretation**: Hierarchical graphs (constituency, syntactic) impose structural constraints fundamentally different from the token-level attention in LLMs. This architectural divergence creates more distinctive explainability signatures, making it easier to distinguish correct from incorrect predictions. Proximity-based graphs (window, skip-gram) more closely resemble LLM attention patterns, resulting in less discriminative error signals.
+The repository was previously named *Graph-Neural-Networks-Enable-Superior-Error-Detection-in-NLP-Explainability-than-Language-Models*; the old URL redirects here. The claim in that name did not survive the revision of the paper (see *What changed in the revision* below). The full commit history is kept.
 
 ---
 
-## 📊 4-Dimension Evaluation Framework
+## What the paper asks
 
-The evaluation framework (Section 3.5) provides a comprehensive assessment of explainability quality across four orthogonal dimensions:
+A fine-tuned language model (BERT) acts as teacher for graph neural network surrogates (GCN) trained on four graph representations of the same texts (constituency and dependency trees, window and skip-gram graphs), so that graph and token explanations refer to the same decision function. Three Shapley-style explainers (SubgraphX, GraphSVX on the graphs; TokenSHAP on the language model) run under a common budget, sparsity and receptive field, and four families of explanation metrics feed error detectors that are always evaluated against majority-class and confidence baselines. Three questions:
 
-### Dimension 1: AUC Discriminative Capacity
+1. Does the representation (graph topology versus tokens) or the explainer determine the signature of an explanation?
+2. Do explanation-derived features detect classification errors beyond what the model's confidence already provides?
+3. What does a graph surrogate trained as the student of a language model inherit from its teacher: its errors, its confidence, or its attributions?
 
-**Purpose**: Measures the area under the insertion/deletion curves and uses fixed thresholds to determine error detection rates.
+## What the paper finds
 
-**Methodology**:
-1. Calculate **Deletion AUC** and **Insertion AUC** for each prediction
-2. Apply fixed threshold values across the AUC range
-3. For each threshold, compute:
-   - **Correctness Rate**: Percentage of correct predictions above/below threshold
-   - **Error Rate**: Percentage of incorrect predictions above/below threshold
-4. Find the **optimal threshold** at the intersection of these curves
+- **Signatures do not separate graphs from tokens.** Within the budget every explanation, on every representation, is sufficient and not necessary; degrees of sufficiency differ between explainers, not between discrete and continuous representations.
+- **Explanations as error signals add nothing to a language model's confidence.** Explanation features from every explainer and representation carry information about correctness (AUROC 0.79–0.86 used alone), but none beyond the confidence of the language model, for linear and non-linear detectors, for both definitions of error and in the high-confidence regime. No graph configuration detects errors better than the token explainer of the language model itself.
+- **What distillation transfers.** Against a gold-trained control with identical architecture and data, distilled surrogates make the same errors on the same instances (the errors reach the surrogate through the node features), but they are confident in the teacher's errors about twice as often. Explanation features help a distilled surrogate only where its confidence was damaged by distillation, and never carry it to the level of the language model. Surrogate attributions overlap with the teacher's at chance level.
 
-**Key Insight**: GNN explainers produce AUC distributions where the optimal threshold achieves near-perfect separation between correct and incorrect predictions. LLM explainers show overlapping distributions with lower discrimination.
+## What changed in the revision
 
-<p align="center">
-  <img src="Images/AUC Discriminative Capacity/ag-news_connected_scatter_insertion.png" alt="AUC Insertion AG News" width="80%">
-</p>
-<p align="center"><em>Insertion AUC distribution (AG News)</em></p>
+The submitted version reported 99.7–100% error-detection accuracy for hierarchical graphs against 88–90% for tokens. Auditing the pipeline in response to the reviewers showed that this result came from defects, all corrected here:
 
-<p align="center">
-  <img src="Images/AUC Discriminative Capacity/sst-2_connected_scatter_insertion.png" alt="AUC Insertion SST-2" width="80%">
-</p>
-<p align="center"><em>Insertion AUC distribution (SST-2)</em></p>
+| Defect | Effect | Fix |
+|---|---|---|
+| SubgraphX explained the label stored with the instance (the teacher's prediction) instead of the class the surrogate predicted | for every disagreement with the teacher the explained class had near-zero confidence, so every confidence-based metric leaked the target | every explainer targets the predicted class; SubgraphX re-run (`scripts/07`) |
+| Error detectors trained and selected per *true* class | the true class is unknown at inference time and reveals the error | detectors per *predicted* class and pooled (`src/use_case/revision_metrics.py`) |
+| SubgraphX metrics computed on DIG's first result (the near-full graph) instead of the best coalition within the budget | explanations covered 80–94% of the nodes; spurious "necessity" signature | coalition within the 20% budget; metrics recomputed (`src/explain/gnn/subgraphx/recompute_metrics.py`) |
+| SubgraphX node ranking spanned the whole graph | Dimension-1 and -2 progressions not comparable with the other explainers | progressions truncated to the budget (`src/use_case/truncate_progressions_to_budget.py`) |
+| Node features from the pre-trained encoder, labels from the fine-tuned teacher | surrogate less faithful to its teacher | features and labels from the same fine-tuned checkpoint (`scripts/12`); the pre-trained setting is kept as an ablation |
 
-### Dimension 2: Feature Ranking Stability (Progression)
-
-**Purpose**: Evaluates how importance is distributed across features by measuring confidence changes as top-k features are progressively masked or revealed.
-
-**Metrics**:
-- **Sufficiency Drop Progression**: Confidence when keeping only top-k features (k = 1, 3, 5, 10)
-- **Maskout Drop Progression**: Confidence drop when removing top-k features (k = 1, 3, 5, 10)
-
-**Key Insight**: Measures whether importance is **concentrated in few features** or **spread across many**. GNN explainers show:
-- Steeper maskout drops (removing top features significantly hurts confidence)
-- Higher sufficiency retention (top-k features alone capture prediction)
-
-This reveals that GNN explanations identify more **focused, meaningful feature sets** compared to LLM explainers.
-
-<p align="center">
-  <img src="Images/Feature Ranking Stability/top_k_concentration.png" alt="Feature Ranking Stability AG News" width="80%">
-</p>
-<p align="center"><em>Top-k concentration analysis (AG News & SST-2)</em></p>
-
-### Dimension 3: Consistency Across Outcomes
-
-**Purpose**: Measures the confidence difference between the predicted label and the second most probable label through different margin calculations.
-
-**Metrics**:
-- **Origin Margin**: Confidence gap in the original prediction
-- **Masked Margin**: Confidence gap when keeping only top-k important features
-- **Maskout Margin**: Confidence gap when removing top-k important features
-
-**Quadrant Analysis**: Based on masked and maskout margins, predictions are separated into 4 quadrants revealing explanation quality patterns.
-
-**Separability Metric**:
-```
-Separability = √(SD_correct² + SD_incorrect²)
-```
-
-**Key Insight**: GNN explainers achieve **higher separability scores**, meaning correct and incorrect predictions cluster in distinct regions of the margin space.
-
-<p align="center">
-  <img src="Images/Consistency Across Outcomes/Ag-news.png" alt="Consistency AG News" width="80%">
-</p>
-<p align="center"><em>Consistency quadrant analysis (AG News)</em></p>
-
-<p align="center">
-  <img src="Images/Consistency Across Outcomes/SST-2.png" alt="Consistency SST-2" width="80%">
-</p>
-<p align="center"><em>Consistency quadrant analysis (SST-2)</em></p>
-
-### Dimension 4: Behavioral Faithfulness (Fidelity)
-
-**Purpose**: Uses traditional fidelity metrics to assess whether identified features are truly necessary and sufficient.
-
-**Metrics**:
-- **Fidelity+ (M⁺)**: Does masking to only the important features maintain the prediction? (Sufficiency)
-- **Fidelity- (M⁻)**: Does masking out the important features change the prediction? (Necessity)
-
-**Quadrant Analysis**:
-| Quadrant | M⁺ | M⁻ | Interpretation |
-|----------|----|----|----------------|
-| Q1: Sufficient & Necessary | >0 | >0 | Ideal explanations |
-| Q2: Sufficient & Redundant | >0 | ≤0 | Features work but aren't unique |
-| Q3: Insufficient & Necessary | ≤0 | >0 | Missing key features |
-| Q4: Insufficient & Redundant | ≤0 | ≤0 | Poor explanations |
-
-**Separability Metric**:
-```
-Separability = √(SD_correct² + SD_incorrect²)
-```
-
-**Key Insight**: GNN explainers consistently place correct predictions in Q1 (ideal) and incorrect predictions in Q3/Q4. This **high separability** enables near-perfect error detection.
-
-<p align="center">
-  <img src="Images/Fidelity/Ag_news.png" alt="Fidelity AG News" width="80%">
-</p>
-<p align="center"><em>Fidelity quadrant analysis showing M⁺ vs M⁻ distribution (AG News)</em></p>
-
-<p align="center">
-  <img src="Images/Fidelity/SST-2.png" alt="Fidelity SST-2" width="80%">
-</p>
-<p align="center"><em>Fidelity quadrant analysis showing M⁺ vs M⁻ distribution (SST-2)</em></p>
+Both explainers now run on all four graph types (2 explainers × 4 topologies × 2 datasets, plus TokenSHAP), and the protocol adds confidence-based baselines, nested detectors with bootstrap intervals, a gold-trained twin of every surrogate, a node-feature ablation and a cross-model detector.
 
 ---
 
-## 🔬 Logistic Regression Error Detection
-
-Section 3.6 demonstrates the practical application: using explainability metrics as features for automatic error detection.
-
-### Feature Vector Construction
-
-For each prediction, we extract features from all 4 dimensions:
-
-```python
-features = [
-    # Dimension 1: AUC
-    deletion_auc, insertion_auc,
-    
-    # Dimension 2: Progression (k = 1, 3, 5, 10)
-    sufficiency_drop_k1, sufficiency_drop_k3, sufficiency_drop_k5, sufficiency_drop_k10,
-    maskout_drop_k1, maskout_drop_k3, maskout_drop_k5, maskout_drop_k10,
-    
-    # Dimension 3: Consistency
-    origin_margin, masked_margin, maskout_margin,
-    
-    # Dimension 4: Fidelity
-    fidelity_plus, fidelity_minus
-]
-```
-
-### Binary Classification
+## Repository structure
 
 ```
-y = 1 if prediction is INCORRECT (error)
-y = 0 if prediction is CORRECT
+├── scripts/                     # numbered pipeline scripts
+│   ├── 01-06_*.sh               #   original pipeline: fine-tune, graphs, embeddings, GNNs, explainers, analytics
+│   ├── 07-13_*.sh               #   revision: predicted-class SubgraphX, GraphSVX on trees, control GNNs,
+│   │                            #   fine-tuned-feature rerun, re-derivation of every table and figure
+├── src/
+│   ├── finetuning/              # LLM fine-tuning (BERT)
+│   ├── embeddings/              # node features from the fine-tuned (or pre-trained) encoder
+│   ├── graph_builders/          # text-to-graph conversion (constituency, dependency, window, skip-gram)
+│   ├── convert/                 # NetworkX -> PyTorch Geometric
+│   ├── gnn_training/            # GCN surrogates (LLM-as-teacher) and gold-trained controls
+│   ├── explain/                 # SubgraphX, GraphSVX, TokenSHAP wrappers under a common budget
+│   ├── Analytics/               # the four evaluation dimensions (auc, progression, consistency, fidelity)
+│   └── use_case/                # error detectors, controls, and the generators of every table and figure
+├── revision/
+│   ├── results_ft/              # result CSVs of the fine-tuned-feature run (the numbers in the paper)
+│   ├── results/                 # result CSVs of the pre-trained-feature run (ablation)
+│   └── manuscript_v2/           # LaTeX sources, generated table bodies and figures of the revised paper
+├── tests/                       # pytest suite
+├── docker/, docker-compose.yml  # one container per explainer (see below)
+└── outputs/                     # generated artefacts (gitignored)
 ```
 
-### Results
+## Paper-to-code mapping
 
-Classification accuracy for error detection via stratified logistic regression (10-fold CV + 200 bootstrap resamples):
+| Paper section | Code |
+|---|---|
+| 3.1 Text-to-graph conversion | `src/graph_builders/` |
+| 3.2 Fine-tuning and node features | `src/finetuning/`, `src/embeddings/` |
+| 3.3 GNN surrogates and gold-trained controls | `src/gnn_training/`, `scripts/10_train_control_gnns_paired.sh` |
+| 3.4 Explainers under a common budget | `src/explain/gnn/`, `src/explain/llm/`, `src/explain/gnn/subgraphx/recompute_metrics.py` |
+| 3.5 The four dimensions (Table 1) | `src/Analytics/`, `src/use_case/build_module_datasets.py`, `src/use_case/feature_config.py` |
+| 3.6 Error detectors, baselines, bootstrap | `src/use_case/revision_metrics.py`, `nested_coefficients.py`, `nested_gbm.py` |
+| 4.2 Dimensions 1–4 | `trajectory_correlations.py`, `maskout_drop_sign.py`, `margin_flips.py`, `coalition_phrase_share.py` |
+| 4.3 Detection against baselines, cross-model, second opinion | `cross_model_detection.py`, `surrogate_gap_vs_bert.py`, `explanation_overlap.py` |
+| 4.4 Calibration, gold-trained control, ablation | `control_error_overlap.py`, `control_agreement_on_bert_errors.py`, `surrogate_error_overlap_dg.py`, `ablation_table_blocks.py` |
+| Tables 2–6, Figures 3–5, Tables S1–S14 | `manuscript_tables.py`, `manuscript_figures.py`, `supplementary_tables.py`, `merge_supplementary_tables.py` |
 
-**GNN Methods (SubgraphX/GraphSVX)**:
-| Dataset | Graph Type | CV Accuracy | Bootstrap Accuracy |
-|---------|------------|-------------|-------------------|
-| AG News | Constituency | 99.9% ± 0.2 | **100.0%** ± 0.0 |
-| AG News | Syntactic | 99.7% ± 0.4 | 99.8% ± 0.2 |
-| AG News | Skipgrams | 93.6% ± 4.2 | 94.2% ± 3.7 |
-| AG News | Window | 92.5% ± 4.9 | 93.1% ± 4.2 |
-| SST-2 | Constituency | **100.0%** ± 0.0 | **100.0%** ± 0.0 |
-| SST-2 | Syntactic | 99.9% ± 0.5 | 99.9% ± 0.1 |
-| SST-2 | Skipgrams | 88.6% ± 6.5 | 90.0% ± 1.7 |
-| SST-2 | Window | 86.5% ± 5.7 | 88.2% ± 3.2 |
-
-**LLM Method (TokenSHAP)**:
-| Dataset | CV Accuracy | Bootstrap Accuracy |
-|---------|-------------|-------------------|
-| AG News | 88.1% ± 5.3 | 88.7% ± 4.5 |
-| SST-2 | 89.6% ± 4.3 | 91.4% ± 2.1 |
-
-**Key Observation**: Hierarchical graphs (constituency, syntactic) achieve 99.7–100.0% accuracy, substantially outperforming TokenSHAP (88.1–89.6%). This 10–13 percentage point gap confirms that structured graph representations expose model decision boundaries with greater transparency.
-
-### Coefficient Analysis
-
-The logistic regression coefficients reveal which dimensions are most predictive:
-
-- **Dimension 4 (Fidelity)**: Highest predictive power due to clear quadrant separation
-- **Dimension 2 (Progression)**: Strong signal from concentrated importance patterns
-- **Dimension 3 (Consistency)**: High separability in margin space
-- **Dimension 1 (AUC)**: Solid baseline discrimination
+Every table body in the paper and the supplementary material is a file generated by these scripts from the CSVs in `revision/results_ft/` and `revision/results/`; `scripts/13_rederive_after_truncation.sh` regenerates all of them.
 
 ---
 
-## 📈 Interactive Visualizations
-
-The `Images/` directory contains interactive HTML visualizations for each evaluation dimension:
-
-```
-Images/
-├── AUC Discriminative Capacity/
-│   ├── sst-2_connected_scatter_deletion.html
-│   ├── sst-2_connected_scatter_insertion.html
-│   ├── ag-news_connected_scatter_deletion.html
-│   └── ag-news_connected_scatter_insertion.html
-├── Fidelity/
-│   ├── fidelity_quadrants_*.html          # Quadrant scatter plots
-│   ├── fidelity_asymmetry_*.html          # Asymmetry distributions
-│   └── fidelity_quadrant_distribution_*.html
-├── Consistency Across Outcomes/
-│   └── [8 interactive plots - margin analysis]
-└── Feature Ranking Stability/
-    └── [2 interactive plots - progression curves]
-```
-
-**Open these files in a browser** to explore the data interactively with hover tooltips, zoom, and filtering.
-
----
-
-## Paper-to-Code Mapping
-
-| Paper Section | Description | Code Location |
-|---------------|-------------|---------------|
-| 3.1 Text-to-Graph Conversion | Constituency, Dependency, Window, Skip-gram graphs | `src/graph_builders/` |
-| 3.2 LLM Fine-tuning & Embeddings | BERT fine-tuning and node embedding extraction | `src/finetuning/`, `src/embeddings/` |
-| 3.3 GNN Training | GCN-based surrogates trained via LLM-as-teacher | `src/gnn_training/` |
-| 3.4 Post-hoc Explainability | SubgraphX, GraphSVX (GNN), TokenSHAP (LLM) | `src/explain/gnn/`, `src/explain/llm/` |
-| 3.5 4-Dimension Evaluation | AUC, Progression, Consistency, Fidelity | `src/Analytics/` |
-| 3.6 Logistic Regression | Error signal analysis | `src/use_case/`, `src/Insights/` |
-
----
-
-## 🚀 Quick Start: Reproduce All Experiments
+## Reproducing the experiments
 
 ### Requirements
 
-- Docker & Docker Compose v2
-- NVIDIA GPU with CUDA support
-- NVIDIA Container Toolkit
+Docker and Docker Compose v2, an NVIDIA GPU with CUDA and the NVIDIA Container Toolkit.
 
-### 1. Build All Containers
+### Original pipeline
 
 ```bash
-make build
+make build        # build the containers
+make up           # start them
+make reproduce    # steps 1-6: fine-tune, graphs, embeddings, GNNs, explainers, analytics
 ```
 
-### 2. Start Containers
+Or step by step: `make step-1-finetune`, `make step-2-graphs`, `make step-3-embeddings`, `make step-4-train`, `make step-5-explain`, `make step-6-analytics`. Each script supports `--help` and `--dry-run`.
 
-```bash
-make up
-```
+### Revision pipeline
 
-### 3. Run Full Pipeline
+The scripts `scripts/07_*` to `scripts/13_*` reproduce the corrected results in order: SubgraphX with the predicted class as target (07), GraphSVX on the tree graphs (08), analytics rebuild (09), gold-trained and seed-replicate surrogates (10), the fine-tuned-feature rerun of the whole pipeline (12) and the re-derivation of every CSV, table and figure (13). Paths to the experiment artefacts are set in `docker-compose.override.yml` (machine-specific, not versioned).
 
-```bash
-make reproduce
-```
+### Containers
 
-This runs the complete pipeline:
-1. **Fine-tune LLM** (Section 3.2) - BERT classification on SST-2 & AG News
-2. **Build Graphs** (Section 3.1) - 4 graph types: constituency, syntactic, skipgrams, window
-3. **Generate Embeddings** (Section 3.2) - Extract node embeddings from fine-tuned LLM
-4. **Train GNNs** (Section 3.3) - 2-layer GCN surrogates
-5. **Run Explainability** (Section 3.4) - SubgraphX, GraphSVX, TokenSHAP
-6. **Run Analytics** (Section 3.5-3.6) - 4-dimension evaluation & logistic regression
+| Container | Purpose |
+|---|---|
+| `app` | training, analytics, detectors |
+| `subgraphx` | SubgraphX explainer (all four graph types) |
+| `graphsvx` | GraphSVX explainer (all four graph types) |
+| `tokenshap` | TokenSHAP on the language model |
 
----
-
-## Step-by-Step Execution
-
-```bash
-make step-1-finetune      # Fine-tune LLM
-make step-2-graphs        # Build graph representations
-make step-3-embeddings    # Generate node embeddings
-make step-4-train         # Train GNN models
-make step-5-explain       # Run explainability
-make step-6-analytics     # Run 4-dimension evaluation
-```
-
-Each script supports `--help` and `--dry-run` options.
-
----
-
-## Docker Architecture
-
-| Container | Purpose | GPU | Used In |
-|-----------|---------|-----|---------|
-| `app` | Main training environment | ✓ | Steps 1-4, 6 |
-| `subgraphx` | SubgraphX explainer (tree graphs) | ✓ | Step 5 |
-| `graphsvx` | GraphSVX explainer (non-tree graphs) | ✓ | Step 5 |
-| `tokenshap` | TokenSHAP explainer (LLM baseline) | ✓ | Step 5 |
-
-```bash
-make subgraphx-shell      # Open shell in SubgraphX container
-make graphsvx-shell       # Open shell in GraphSVX container  
-make tokenshap-shell      # Open shell in TokenSHAP container
-```
-
----
-
-## Repository Structure
-
-```
-├── Images/                  # Interactive HTML visualizations
-├── scripts/                 # Numbered pipeline scripts (01-06)
-├── src/
-│   ├── finetuning/          # LLM fine-tuning (BERT)
-│   ├── embeddings/          # Node embedding extraction
-│   ├── graph_builders/      # Text-to-graph conversion
-│   ├── convert/             # NetworkX → PyTorch Geometric
-│   ├── gnn_training/        # GNN training pipeline
-│   ├── explain/             # Explainability modules
-│   ├── Analytics/           # 4-Dimension Evaluation
-│   │   ├── auc/             # Dimension 1
-│   │   ├── progression/     # Dimension 2
-│   │   ├── consistency/     # Dimension 3
-│   │   └── fidelity/        # Dimension 4
-│   └── Insights/            # Metrics extraction
-├── tests/                   # Pytest test suite (85 tests)
-└── outputs/                 # Generated outputs (gitignored)
-```
-
----
-
-## Testing
+### Tests
 
 ```bash
 docker compose exec -w /app app pytest tests/ -v
@@ -353,35 +117,30 @@ docker compose exec -w /app app pytest tests/ -v
 
 ---
 
-## Datasets
+## Datasets and explainers
 
-- **SST-2**: Binary sentiment analysis (Socher et al., 2013)
-- **AG News**: 4-class topic classification (Zhang et al., 2015)
+- **AG News** (Zhang et al., 2015): four-class topic classification, 120,000 training and 7,600 test instances.
+- **SST-2** (Socher et al., 2013): binary sentiment, 67,349 training instances; the 872 labelled validation instances serve as test set.
 
----
-
-## Explainability Methods
-
-| Method | Architecture | Graph Types | Paper Section |
-|--------|-------------|-------------|---------------|
-| SubgraphX | GNN | Constituency, Syntactic (trees) | 3.4.1 |
-| GraphSVX | GNN | Window, Skip-gram (non-trees) | 3.4.1 |
-| TokenSHAP | LLM | Tokens | 3.4.1 |
+| Explainer | Model | Representations |
+|---|---|---|
+| SubgraphX | GCN surrogate | constituency, dependency, window, skip-gram |
+| GraphSVX | GCN surrogate | constituency, dependency, window, skip-gram |
+| TokenSHAP | BERT | tokens (aggregated to words) |
 
 ---
 
 ## Citation
 
 ```bibtex
-@article{yanez2025gnn,
-  title={Graph Neural Networks Enable Superior Error Detection in NLP Explainability than Language Models},
-  author={Yáñez-Romero, Fabio and Montoya, Andrés and Suárez, Armando and Gutiérrez, Yoan and Mitkov, Ruslan},
-  year={2025}
+@article{yanez2026signatures,
+  title   = {Do Explanation Signatures Detect Classification Errors? A Controlled Comparison of Graph and Token Explainers},
+  author  = {Y{\'a}{\~n}ez-Romero, Fabio and Montoyo, Andr{\'e}s and Su{\'a}rez, Armando and Guti{\'e}rrez, Yoan and Mitkov, Ruslan},
+  year    = {2026},
+  note    = {Under review at Pattern Recognition}
 }
 ```
 
----
-
 ## License
 
-See [LICENSE](LICENSE) for details.
+See [LICENSE](LICENSE).

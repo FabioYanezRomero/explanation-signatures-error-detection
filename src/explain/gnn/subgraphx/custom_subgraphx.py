@@ -6,6 +6,10 @@ from torch_geometric.data import Batch, Data
 
 from dig.xgraph.method import SubgraphX
 
+from .fast_shapley import build_masked_batch, install as _install_fast_shapley
+
+FAST_SHAPLEY_ENABLED = _install_fast_shapley()
+
 
 def _contrastive_stats(
     distribution: Optional[Sequence[float]],
@@ -109,7 +113,7 @@ class CustomSubgraphX(SubgraphX):
                 raise
 
         try:
-            self._augment_related_prediction(results, related_pred, x, edge_index, label)
+            self._augment_related_prediction(results, related_pred, x, edge_index, label, max_nodes=max_nodes)
         except Exception as exc:  # pragma: no cover - defensive guard
             warnings.warn(f"Failed to augment SubgraphX probabilities: {exc}")
         return results, related_pred
@@ -121,13 +125,19 @@ class CustomSubgraphX(SubgraphX):
         x: torch.Tensor,
         edge_index: torch.Tensor,
         label: Optional[int],
+        max_nodes: Optional[int] = None,
     ) -> None:
         if not isinstance(related_pred, dict):
             return
 
-        base_data, coalition = self._extract_primary_data(results)
+        self._last_max_nodes = max_nodes
+        base_data, coalition = self._extract_primary_data(results, max_nodes=max_nodes)
         if isinstance(coalition, list):
-            related_pred.setdefault("top_nodes", [int(idx) for idx in coalition])
+            num_nodes = int(x.size(0))
+            related_pred["explanation_nodes"] = [int(idx) for idx in coalition]
+            related_pred["sparsity_included"] = len(coalition) / max(num_nodes, 1)
+            related_pred["top_nodes"] = self.survival_ranking(getattr(self, "_last_entries", []), coalition, num_nodes)
+            related_pred["ranking_method"] = "mcts_survival_credit"
 
         origin_probs = self._predict_probs_from_inputs(x, edge_index)
         origin_distribution = origin_probs.detach().cpu().tolist()
@@ -208,7 +218,7 @@ class CustomSubgraphX(SubgraphX):
     def _compute_masked_distributions(
         self, results
     ) -> Tuple[Optional[List[float]], Optional[List[float]]]:
-        base_data, coalition = self._extract_primary_data(results)
+        base_data, coalition = self._extract_primary_data(results, max_nodes=getattr(self, "_last_max_nodes", None))
         if base_data is None or not coalition:
             return None, None
 
@@ -237,38 +247,51 @@ class CustomSubgraphX(SubgraphX):
         )
 
     def _extract_primary_data(
-        self, results
+        self, results, max_nodes: Optional[int] = None
     ) -> Tuple[Optional[Data], Optional[Sequence[int]]]:
+        """Return the graph and DIG's explanation coalition (highest score with <= max_nodes).
+
+        DIG sorts the explored MCTS nodes by score, so ``results[0]`` is typically the
+        (almost) full graph; the explanation is the best coalition within the node budget.
+        """
         if not results:
             return None, None
-        entry = results[0]
-        if isinstance(entry, list) and entry:
-            entry = entry[0]
-        if not isinstance(entry, dict):
+        entries = results[0] if (isinstance(results[0], list) and results[0]) else results
+        entries = [e for e in entries if isinstance(e, dict)]
+        if not entries:
             return None, None
-
-        data_obj = entry.get("data")
-        coalition = entry.get("coalition") or []
-        if data_obj is None:
-            return None, None
-
+        budget = int(max_nodes) if max_nodes is not None else len(entries[0].get("coalition") or [])
+        ordered = sorted(entries, key=lambda e: len(e.get("coalition") or []))
+        best = ordered[0]
+        for entry in ordered:
+            if len(entry.get("coalition") or []) <= budget and float(entry.get("P", 0.0)) > float(best.get("P", 0.0)):
+                best = entry
+        data_obj = best.get("data")
         if isinstance(data_obj, Batch):
             data_list = data_obj.to_data_list()
-            if not data_list:
-                return None, None
-            base_data = data_list[0]
+            base_data = data_list[0] if data_list else None
         elif isinstance(data_obj, Data):
             base_data = data_obj
         else:
             return None, None
+        coalition = [int(v) for v in (best.get("coalition") or [])]
+        self._last_entries = entries
+        return base_data, coalition
 
-        indices: List[int] = []
-        for value in coalition:
-            try:
-                indices.append(int(value))
-            except (TypeError, ValueError):
+    @staticmethod
+    def survival_ranking(entries, coalition, num_nodes: int) -> List[int]:
+        """Node ranking from the MCTS search: sum over explored coalitions of P/|C|; coalition first."""
+        credit = [0.0] * num_nodes
+        for entry in entries:
+            members = entry.get("coalition") or []
+            if not members:
                 continue
-        return base_data, indices
+            share = float(entry.get("P", 0.0)) / len(members)
+            for node in members:
+                if 0 <= int(node) < num_nodes:
+                    credit[int(node)] += share
+        inside = set(int(n) for n in coalition)
+        return sorted(inside, key=lambda n: -credit[n]) + sorted((n for n in range(num_nodes) if n not in inside), key=lambda n: -credit[n])
 
     def _build_batch(self, data: Data, mask: torch.Tensor) -> Batch:
         masked = data.clone().cpu()
@@ -286,19 +309,32 @@ class CustomSubgraphX(SubgraphX):
         batch = Batch.from_data_list([masked])
         return batch.to(self.device)
 
-    def cumulative_maskout_confidence(
-        self,
-        data: Data,
-        ordered_nodes: Sequence[int],
-        target_index: Optional[int],
+    def _batched_target_probs(
+        self, data: Data, masks: torch.Tensor, target_index: int
     ) -> List[float]:
-        if target_index is None:
+        """Probability of ``target_index`` for every node mask, evaluated in batches."""
+        if masks.numel() == 0:
             return []
-        num_nodes = getattr(data, "num_nodes", None) or data.x.size(0)
-        if num_nodes <= 0:
-            return []
-        drop_nodes: List[int] = []
+        x = data.x.to(self.device)
+        edge_index = data.edge_index.to(self.device)
+        split = self.subgraph_building_method == "split"
         confidences: List[float] = []
+        with torch.no_grad():
+            for chunk in masks.split(256):
+                batch = build_masked_batch(x, edge_index, chunk, split=split)
+                logits = self.model(data=batch)
+                if isinstance(logits, tuple):
+                    logits = logits[0]
+                probs = torch.softmax(logits, dim=-1)
+                if probs.size(-1) <= target_index:
+                    continue
+                confidences.extend(probs[:, target_index].detach().cpu().tolist())
+        return confidences
+
+    @staticmethod
+    def _valid_node_sequence(data: Data, ordered_nodes: Sequence[int]) -> Tuple[int, List[int]]:
+        num_nodes = getattr(data, "num_nodes", None) or data.x.size(0)
+        valid: List[int] = []
         for node_idx in ordered_nodes:
             if node_idx is None:
                 continue
@@ -306,17 +342,26 @@ class CustomSubgraphX(SubgraphX):
                 node_int = int(node_idx)
             except (TypeError, ValueError):
                 continue
-            if node_int < 0 or node_int >= num_nodes:
-                continue
-            drop_nodes.append(node_int)
-            mask = torch.ones(num_nodes, dtype=torch.float32, device=self.device)
-            mask[drop_nodes] = 0.0
-            batch = self._build_batch(data, mask)
-            probs = self._predict_probs_from_inputs(batch)
-            if probs.numel() <= target_index:
-                continue
-            confidences.append(float(probs[target_index]))
-        return confidences
+            if 0 <= node_int < num_nodes:
+                valid.append(node_int)
+        return num_nodes, valid
+
+    def cumulative_maskout_confidence(
+        self,
+        data: Data,
+        ordered_nodes: Sequence[int],
+        target_index: Optional[int],
+    ) -> List[float]:
+        """Confidence after removing the top-1, top-2, ... ranked nodes (necessity curve)."""
+        if target_index is None:
+            return []
+        num_nodes, nodes = self._valid_node_sequence(data, ordered_nodes)
+        if num_nodes <= 0 or not nodes:
+            return []
+        masks = torch.ones(len(nodes), num_nodes, dtype=torch.float32, device=self.device)
+        for step, node_int in enumerate(nodes):
+            masks[step:, node_int] = 0.0
+        return self._batched_target_probs(data, masks, int(target_index))
 
     def cumulative_sufficiency_confidence(
         self,
@@ -324,31 +369,16 @@ class CustomSubgraphX(SubgraphX):
         ordered_nodes: Sequence[int],
         target_index: Optional[int],
     ) -> List[float]:
+        """Confidence when keeping only the top-1, top-2, ... ranked nodes (sufficiency curve)."""
         if target_index is None:
             return []
-        num_nodes = getattr(data, "num_nodes", None) or data.x.size(0)
-        if num_nodes <= 0:
+        num_nodes, nodes = self._valid_node_sequence(data, ordered_nodes)
+        if num_nodes <= 0 or not nodes:
             return []
-        kept_nodes: List[int] = []
-        confidences: List[float] = []
-        for node_idx in ordered_nodes:
-            if node_idx is None:
-                continue
-            try:
-                node_int = int(node_idx)
-            except (TypeError, ValueError):
-                continue
-            if node_int < 0 or node_int >= num_nodes:
-                continue
-            kept_nodes.append(node_int)
-            mask = torch.zeros(num_nodes, dtype=torch.float32, device=self.device)
-            mask[kept_nodes] = 1.0
-            batch = self._build_batch(data, mask)
-            probs = self._predict_probs_from_inputs(batch)
-            if probs.numel() <= target_index:
-                continue
-            confidences.append(float(probs[target_index]))
-        return confidences
+        masks = torch.zeros(len(nodes), num_nodes, dtype=torch.float32, device=self.device)
+        for step, node_int in enumerate(nodes):
+            masks[step:, node_int] = 1.0
+        return self._batched_target_probs(data, masks, int(target_index))
 
     def _predict_probs_from_inputs(self, *model_args, **model_kwargs) -> torch.Tensor:
         with torch.no_grad():

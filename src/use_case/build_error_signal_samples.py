@@ -22,8 +22,10 @@ ANALYTIC_ROOTS: Mapping[str, Path] = {
 }
 
 METHOD_GRAPHS: Mapping[str, Sequence[str]] = {
-    "graphsvx": ("skipgrams", "window"),
-    "subgraphx": ("constituency", "syntactic"),
+    # GraphSVX is topology-agnostic: it is also run on the hierarchical graphs so that
+    # topology and explainer are not confounded (shared explainer across topologies).
+    "graphsvx": ("skipgrams", "window", "constituency", "syntactic"),
+    "subgraphx": ("constituency", "syntactic", "window", "skipgrams"),
     "token_shap_llm": ("tokens",),
 }
 METHOD_ORDER: Sequence[str] = ("graphsvx", "subgraphx", "token_shap_llm")

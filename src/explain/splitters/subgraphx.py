@@ -58,6 +58,9 @@ def _get_field(result: Any, attr: str, default: Any = None) -> Any:
 
 SHARD_DIR_PATTERN = re.compile(r"^(?P<prefix>.+)_shard(?P<index>\d+)of(?P<total>\d+)$")
 
+# SPLIT_DROP_EXPLANATION=1 keeps per-graph records small (see serialise_result).
+DROP_EXPLANATION = os.environ.get("SPLIT_DROP_EXPLANATION", "1") not in ("0", "false", "False")
+
 _DEBUG_FLAG = os.environ.get("SPLIT_SUBGRAPHX_DEBUG")
 _DEBUG_ENABLED = _DEBUG_FLAG not in (None, "", "0", "false", "False")
 
@@ -83,6 +86,7 @@ class _StreamingResultWriter:
         "written",
         "processed",
         "offset",
+        "stride",
         "output_format",
         "extension",
         "make_serialisable",
@@ -95,6 +99,7 @@ class _StreamingResultWriter:
         overwrite: bool,
         *,
         offset: int = 0,
+        stride: int = 1,
         output_format: str = OUTPUT_FORMAT_JSON,
         skip_indices: Optional[Iterable[int]] = None,
     ) -> None:
@@ -103,6 +108,7 @@ class _StreamingResultWriter:
         self.written = 0
         self.processed = 0
         self.offset = offset
+        self.stride = max(1, int(stride))
         if output_format not in VALID_OUTPUT_FORMATS:
             raise ValueError(f"Unsupported output format: {output_format}")
         self.output_format = output_format
@@ -130,7 +136,9 @@ class _StreamingResultWriter:
             return
 
         record = serialise_result(result, make_serialisable=self.make_serialisable)
-        record["global_graph_index"] = graph_index + self.offset
+        # Shards are strided (loader keeps graphs with i % num_shards == shard_index),
+        # so the dataset-level index is shard_index + local_index * num_shards.
+        record["global_graph_index"] = graph_index * self.stride + self.offset
 
         if self.output_format in {OUTPUT_FORMAT_PICKLE, OUTPUT_FORMAT_PICKLE_RAW}:
             with destination.open("wb") as fh:
@@ -270,43 +278,22 @@ def _trigger_gc() -> None:
         pass
 
 
-def _determine_graph_index_offset(results_path: Path) -> int:
+def _determine_graph_index_offset(results_path: Path) -> Tuple[int, int]:
+    """Return ``(offset, stride)`` mapping a shard-local graph index to the dataset index.
+
+    ``src.explain.gnn.model_loader.load_graph_split`` assigns graph ``i`` to shard
+    ``i % num_shards``; hence ``global = shard_index0 + local * num_shards``.
+    """
     parent = results_path.parent
     match = SHARD_DIR_PATTERN.match(parent.name)
     if not match:
-        return 0
+        return 0, 1
 
-    shard_index = int(match.group("index"))
+    shard_index = int(match.group("index"))  # 1-based in directory names
     total_shards = int(match.group("total"))
-    if shard_index <= 1 or total_shards <= 1:
-        return 0
-
-    prefix = match.group("prefix")
-    base_dir = parent.parent
-    offset = 0
-
-    for idx in range(1, shard_index):
-        sibling = base_dir / f"{prefix}_shard{idx}of{total_shards}"
-        summary_path = sibling / "summary.json"
-        num_graphs: Optional[int] = None
-
-        if summary_path.exists():
-            try:
-                with summary_path.open("r", encoding="utf-8") as fh:
-                    summary = json.load(fh)
-                num_graphs_val = summary.get("num_graphs")
-                if num_graphs_val is not None:
-                    num_graphs = int(num_graphs_val)
-            except Exception:
-                num_graphs = None
-
-        if num_graphs is None:
-            num_graphs = _load_results_count(sibling / "results.pkl")
-
-        if num_graphs:
-            offset += int(num_graphs)
-
-    return offset
+    if total_shards <= 1:
+        return 0, 1
+    return shard_index - 1, total_shards
 
 
 def serialise_graph(graph: nx.Graph | nx.DiGraph | None) -> Dict[str, Any]:
@@ -428,7 +415,13 @@ def serialise_result(result: Any, *, make_serialisable: bool = True) -> Dict[str
         state["related_prediction"] = to_serialisable(
             state.get("related_prediction", {})
         )
-        state["explanation"] = serialise_explanation(explanation_obj)
+        if DROP_EXPLANATION:
+            # The raw DIG explanation embeds one graph copy per explored MCTS node
+            # (tens of MB per record); the analytics only read related_prediction.
+            state["explanation"] = {"dropped": True, "top_nodes": to_serialisable(
+                (state.get("related_prediction") or {}).get("top_nodes"))}
+        else:
+            state["explanation"] = serialise_explanation(explanation_obj)
     else:
         state["label"] = state.get("label")
         state["hyperparams"] = state.get("hyperparams", {})
@@ -510,14 +503,15 @@ def split_results(
         except Exception:
             pass
 
-    offset = _determine_graph_index_offset(input_path)
-    if offset:
-        _debug(f"split_results: detected shard offset {offset}")
+    offset, stride = _determine_graph_index_offset(input_path)
+    if offset or stride != 1:
+        _debug(f"split_results: detected shard offset {offset}, stride {stride}")
 
     streaming_writer = _StreamingResultWriter(
         output_dir,
         overwrite,
         offset=offset,
+        stride=stride,
         output_format=output_format,
         skip_indices=skip_indices,
     )
@@ -559,6 +553,7 @@ def split_results(
         output_dir,
         overwrite,
         offset=offset,
+        stride=stride,
         output_format=output_format,
         skip_indices=skip_indices,
     )

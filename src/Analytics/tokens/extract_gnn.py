@@ -471,12 +471,17 @@ def build_record(
         raise ValueError("Missing graph_index in payload")
 
     ranked_nodes = _extract_ranked_nodes(payload)
+    # Node names must be looked up with the dataset-level index: sharded runs store a
+    # shard-local ``graph_index`` and the corrected splitter adds ``global_graph_index``.
+    lookup_index = payload.get("global_graph_index")
+    if lookup_index is None:
+        lookup_index = graph_index
     node_text_bundle = resolver.resolve(
         backbone=metadata["backbone"],
         dataset_raw=metadata["dataset_raw"],
         split=metadata["split"] or "test",
         graph_type=metadata["graph_type"],
-        graph_index=int(graph_index),
+        graph_index=int(lookup_index),
     )
 
     node_text = node_text_bundle.node_text

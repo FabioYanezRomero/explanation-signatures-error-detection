@@ -347,6 +347,8 @@ def main():
                        help='Batch size for processing graphs')
     parser.add_argument('--max_sentences', type=int, default=None,
                        help='Maximum number of sentences to process (for testing)')
+    parser.add_argument('--no_embedding_pickles', action='store_true',
+                       help='Do not write the intermediate NetworkX pickles to --output_dir (PyG shards only)')
 
     args = parser.parse_args()
 
@@ -377,9 +379,9 @@ def main():
     model = AutoModel.from_pretrained(args.model_name)
 
     # Load finetuned weights if provided
-    if args.weights_path and os.path.isfile(args.weights_path):
+    if args.weights_path:
         print(f"Loading finetuned weights from: {args.weights_path}")
-        model = _load_finetuned_weights_if_any(model, args.weights_path)
+        model = _load_finetuned_weights_if_any(model, args.weights_path, strict=True)
 
     model = model.to(args.device)
     model.eval()
@@ -447,13 +449,14 @@ def main():
                 pred_label = int(true_label)
             graph.graph['predicted_label'] = int(pred_label) if pred_label is not None else None
 
-        batch_path = os.path.join(
-            args.output_dir,
-            f'{embedding_batch_idx:05d}.pkl'
-        )
-        with open(batch_path, 'wb') as f:
-            pkl.dump(processed_graphs, f)
-        print(f"Saved batch {embedding_batch_idx} to {batch_path}")
+        if not args.no_embedding_pickles:
+            batch_path = os.path.join(
+                args.output_dir,
+                f'{embedding_batch_idx:05d}.pkl'
+            )
+            with open(batch_path, 'wb') as f:
+                pkl.dump(processed_graphs, f)
+            print(f"Saved batch {embedding_batch_idx} to {batch_path}")
 
         pyg_graphs = nx_list_to_pyg(processed_graphs)
 

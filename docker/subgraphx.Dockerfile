@@ -62,6 +62,18 @@ RUN grep -v -E 'torch|pytorch_geometric|pyg_lib|torch_scatter|torch_sparse|torch
     pip install --no-cache-dir -r /tmp/requirements-subgraphx.txt && \
     rm /tmp/requirements.txt /tmp/requirements-subgraphx.txt
 
+# Application requirements may drag in a newer torch (observed: 2.14+cu130), which
+# breaks the PyG extension wheels built for 2.3.1+cu121. Re-pin the stack afterwards.
+RUN pip install --no-cache-dir --force-reinstall --no-deps \
+    torch==2.3.1+cu121 \
+    torchvision==0.18.1+cu121 \
+    torchaudio==2.3.1+cu121 \
+    --index-url https://download.pytorch.org/whl/cu121 && \
+    pip install --no-cache-dir torch==2.3.1+cu121 --index-url https://download.pytorch.org/whl/cu121
+
 RUN pip install --no-cache-dir "numpy<2"
+
+# Fail the build early if the extension wheels do not load against the pinned torch.
+RUN python -c "import torch, torch_cluster, torch_scatter, torch_sparse, torch_geometric, dig; print('torch', torch.__version__, 'pyg', torch_geometric.__version__)"
 
 ENTRYPOINT ["/bin/bash"]

@@ -351,7 +351,16 @@ def process_modules(
     *,
     max_splits: int,
     bootstrap_reps: int,
+    stratify_by: str = "prediction_class",
 ) -> tuple[Dict[Tuple[str, str, str, str], Path], pd.DataFrame]:
+    """Fit one logistic model per (dataset, module, graph, stratum) plus a pooled model.
+
+    ``stratify_by`` must be a quantity available at inference time.  The original
+    submission stratified by ``label`` (the true class); for error detection that leaks
+    the target, because within true class *c* an error is simply "predicted another
+    class", which class-dependent explanation features reveal.  The default therefore
+    stratifies by the predicted class.
+    """
     results: Dict[Tuple[str, str, str, str], Path] = {}
     summary_rows: List[dict] = []
     dimension_records: List[pd.DataFrame] = []
@@ -366,13 +375,13 @@ def process_modules(
     for entry in module_files:
         dataset, csv_path, method, graph = entry
         try:
-            label_series = pd.read_csv(csv_path, usecols=["label"])["label"]
+            label_series = pd.read_csv(csv_path, usecols=[stratify_by])[stratify_by]
         except ValueError:
             df_labels = pd.read_csv(csv_path)
-            if "label" not in df_labels.columns:
+            if stratify_by not in df_labels.columns:
                 label_values: List[float] = []
             else:
-                label_values = df_labels["label"].dropna().unique().tolist()
+                label_values = df_labels[stratify_by].dropna().unique().tolist()
         else:
             label_values = label_series.dropna().unique().tolist()
         label_values = sorted(label_values)
@@ -391,7 +400,7 @@ def process_modules(
         label_rows: List[dict] = []
         processed_overall = False
         for label_value in label_values:
-            subset = df[df["label"] == label_value]
+            subset = df[df[stratify_by] == label_value]
             if subset.empty:
                 if progress:
                     progress.update(1)
@@ -437,6 +446,8 @@ def process_modules(
                 results[key] = coeff_path
                 if label_rows:
                     total_n = sum(row["n"] for row in label_rows if row["n"] is not None)
+                    summary_row["pooled_model_accuracy_mean"] = summary_row["accuracy_mean"]
+                    summary_row["pooled_model_accuracy_std"] = summary_row["accuracy_std"]
                     if total_n:
                         weighted_acc = sum(row["n"] * row["accuracy_mean"] for row in label_rows) / total_n
                         weighted_var = (
@@ -499,6 +510,7 @@ def process_modules(
         raise RuntimeError("No module datasets processed; summary empty.")
 
     summary_df = pd.DataFrame(summary_rows)
+    summary_df["stratify_by"] = stratify_by
     summary_df.to_csv(SUMMARY_PATH, index=False)
 
     if dimension_records:
@@ -544,6 +556,12 @@ def parse_args() -> argparse.Namespace:
         default=200,
         help="Number of bootstrap repetitions per module subset (default: 200).",
     )
+    parser.add_argument(
+        "--stratify-by",
+        choices=("prediction_class", "label"),
+        default="prediction_class",
+        help="Column defining the per-class models. 'label' (true class) reproduces the original submission but leaks the target; default: predicted class.",
+    )
     return parser.parse_args()
 
 
@@ -553,6 +571,7 @@ def main() -> None:
         args.output_dir,
         max_splits=args.cv_splits,
         bootstrap_reps=args.bootstrap_reps,
+        stratify_by=args.stratify_by,
     )
     if not results:
         raise SystemExit("No coefficient files were produced.")

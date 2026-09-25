@@ -168,9 +168,11 @@ def _merge_hyperparams(overrides: Optional[Dict[str, float]]) -> Dict[str, float
     return params
 
 
-def _make_slug(request: ExplainerRequest) -> str:
+def _make_slug(request: ExplainerRequest, run_tag: Optional[str] = None) -> str:
     dataset = str(request.dataset_subpath) if request.dataset_subpath != Path('.') else request.dataset
     parts = [request.backbone, dataset, request.graph_type, request.split]
+    if run_tag:
+        parts.append(run_tag)
     if getattr(request, "num_shards", 1) > 1:
         shard_label = f"shard{request.shard_index + 1}of{request.num_shards}"
         parts.append(shard_label)
@@ -392,8 +394,18 @@ def explain_request(
     precomputed_source: Optional[Path] = None,
     max_graphs: Optional[int] = None,
     fairness_config: Optional[FairnessConfig] = None,
+    target_mode: str = "predicted",
+    run_tag: Optional[str] = None,
 ) -> Tuple[List[SubgraphXResult], Path, Path, Optional[Path]]:
-    """Run SubgraphX on the dataset implied by the request."""
+    """Run SubgraphX on the dataset implied by the request.
+
+    ``target_mode`` selects the class the explainer targets: ``"predicted"`` (the
+    model's argmax, the only choice that is label-free at inference time) or
+    ``"label"`` (the legacy behaviour, which leaks the target into every
+    confidence-based metric for misclassified instances).
+    """
+    if target_mode not in {"predicted", "label"}:
+        raise ValueError(f"Unsupported target_mode: {target_mode}")
 
     device = torch.device(request.device) if request.device else torch.device(
         "cuda" if torch.cuda.is_available() else "cpu"
@@ -440,7 +452,7 @@ def explain_request(
             locked_params=combined_overrides,
         )
 
-    artifact_dir = run_dir / "explanations" / "subgraphx" / _make_slug(updated_request)
+    artifact_dir = run_dir / "explanations" / "subgraphx" / _make_slug(updated_request, run_tag)
     artifact_dir.mkdir(parents=True, exist_ok=True)
 
     precomputed_lookup = precomputed_hparams or {}
@@ -491,17 +503,26 @@ def explain_request(
             graph_params["max_nodes"] = max(2, min(graph_params["max_nodes"], data.num_nodes))
             graph_dir = artifact_dir / f"graph_{index:05d}"
             explainer = _prepare_explainer(wrapper, train_args, graph_dir, graph_params)
+            # The explained class must never depend on the label: use the model's own
+            # prediction so that every downstream metric is computable without labels.
+            origin_probs = explainer._predict_probs_from_inputs(data.x, data.edge_index)
+            predicted_class: Optional[int] = int(torch.argmax(origin_probs).item()) if origin_probs.numel() else None
+            predicted_confidence: Optional[float] = (
+                float(origin_probs[predicted_class]) if predicted_class is not None else None
+            )
+            target_class = predicted_class if target_mode == "predicted" else label
             explanation, related_pred = explainer.explain(
                 x=data.x,
                 edge_index=data.edge_index,
-                label=label,
+                label=target_class,
                 max_nodes=graph_params["max_nodes"],
             )
             final_params = dict(graph_params)
+            related_pred["target_class"] = target_class
+            related_pred["target_mode"] = target_mode
+            related_pred["teacher_label"] = label
             origin_distribution = related_pred.get("origin_distribution")
-            predicted_class: Optional[int] = None
-            predicted_confidence: Optional[float] = None
-            if origin_distribution:
+            if origin_distribution and predicted_class is None:
                 try:
                     max_index = max(range(len(origin_distribution)), key=lambda idx: origin_distribution[idx])
                     predicted_class = int(max_index)
@@ -556,7 +577,14 @@ def explain_request(
                 related_pred.setdefault("maskout_second_confidence", None)
                 related_pred.setdefault("maskout_contrastivity", None)
 
-            top_nodes_sequence = related_pred.get("top_nodes") or []
+            # The progressions must span the explanation budget only (as GraphSVX and
+            # TokenSHAP do): the ranking is restricted to the first |explanation_nodes|
+            # entries, i.e. the selected coalition ordered by search credit. Runs before
+            # 2026-09-23 stored the full ranking; see use_case/truncate_progressions_to_budget.py.
+            top_nodes_sequence = list(related_pred.get("top_nodes") or [])
+            explanation_nodes = related_pred.get("explanation_nodes") or []
+            if explanation_nodes and len(top_nodes_sequence) > len(explanation_nodes):
+                top_nodes_sequence = top_nodes_sequence[: len(explanation_nodes)]
             origin_confidence = related_pred.get("origin")
             if origin_confidence is not None and predicted_class is not None and top_nodes_sequence:
                 progression_conf = explainer.cumulative_maskout_confidence(data, top_nodes_sequence, int(predicted_class))
@@ -593,7 +621,7 @@ def explain_request(
             )
             per_graph_hparams.append({"graph_index": index, "source": source, **final_params})
 
-        energy_data = energy_monitor.result
+        energy_data = getattr(energy_monitor, "result", None) or energy_monitor.get_stats()
 
     summary = {
         "method": "subgraphx",
@@ -604,6 +632,8 @@ def explain_request(
         "num_shards": updated_request.num_shards,
         "shard_index": updated_request.shard_index,
         "num_graphs": len(results),
+        "target_mode": target_mode,
+        "run_tag": run_tag,
         "hyperparams": {
             "base_defaults": fairness_advisor.describe() if fairness_advisor else dict(advisor.base_defaults),
             "locked_overrides": {} if fairness_advisor else dict(advisor.locked_params),
@@ -696,6 +726,18 @@ def main(argv: Optional[List[str]] = None) -> None:  # pragma: no cover - CLI he
         default=400,
         help="Target forward pass budget when using --fair (default: 400).",
     )
+    parser.add_argument(
+        "--target-class",
+        choices=("predicted", "label"),
+        default="predicted",
+        help="Class explained by SubgraphX: the model prediction (default, label-free) or the dataset label (legacy, leaks the target).",
+    )
+    parser.add_argument(
+        "--run-tag",
+        type=str,
+        default=None,
+        help="Optional tag inserted in the artifact directory name (before the shard suffix).",
+    )
     args = parser.parse_args(argv)
 
     request = _env_request()
@@ -769,6 +811,8 @@ def main(argv: Optional[List[str]] = None) -> None:  # pragma: no cover - CLI he
         precomputed_source=precomputed_source,
         max_graphs=max_graphs,
         fairness_config=fairness_config,
+        target_mode=args.target_class,
+        run_tag=args.run_tag,
     )
 
     output_path = Path("subgraphx_results.json")

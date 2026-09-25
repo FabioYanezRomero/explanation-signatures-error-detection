@@ -63,6 +63,22 @@ def _coerce_sequence(raw: Optional[Sequence[Any]]) -> List[float]:
     return result
 
 
+def _distribution_stats(distribution):
+    """Label-free confidence baselines from the original class distribution."""
+    try:
+        values = [float(v) for v in (distribution or [])]
+    except (TypeError, ValueError):
+        return None, None, None
+    if not values:
+        return None, None, None
+    import math
+    ordered = sorted(values, reverse=True)
+    msp = ordered[0]
+    margin = ordered[0] - ordered[1] if len(ordered) > 1 else ordered[0]
+    entropy = -sum(p * math.log(p) for p in values if p > 0)
+    return msp, margin, entropy
+
+
 def _compute_auc(values: List[float]) -> Optional[float]:
     n = len(values)
     if n == 0:
@@ -134,6 +150,11 @@ def build_record(payload: Dict[str, Any]) -> Dict[str, Any]:
     if insertion_auc is not None and final_conf not in (None, 0.0):
         normalised_insertion_auc = insertion_auc / final_conf
 
+    distribution = payload.get("origin_distribution")
+    if distribution is None:
+        distribution = related.get("origin_distribution")
+    origin_msp, origin_margin, origin_entropy = _distribution_stats(distribution)
+
     record: Dict[str, Any] = {
         "method": method,
         "backbone": backbone,
@@ -149,6 +170,9 @@ def build_record(payload: Dict[str, Any]) -> Dict[str, Any]:
         "prediction_confidence": payload.get("prediction_confidence"),
         "is_correct": payload.get("is_correct"),
         "origin_confidence": origin_conf,
+        "origin_msp": origin_msp,
+        "origin_margin_top2": origin_margin,
+        "origin_entropy": origin_entropy,
         "deletion_auc": deletion_auc,
         "insertion_auc": insertion_auc,
         "deletion_aac": deletion_aac,
