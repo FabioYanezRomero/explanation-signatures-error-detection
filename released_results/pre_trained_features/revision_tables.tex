@@ -1,0 +1,278 @@
+\begin{table}[H]
+\centering
+\small
+\caption{Error detection with the four-dimension logistic regression (errors w.r.t. the gold label); pooled model, 10-fold CV.}
+\label{tab:lr_gold_label}
+\begin{tabular}{lllrrrrrrr}
+\toprule
+Dataset & Explainer & Graph & Majority acc. & Accuracy & Bal. acc. & AUROC & AUPRC (err) & MCC & Recall (err) \\
+\midrule
+AG News & SubgraphX & Constituency & 0.924 & 0.837 & 0.754 & 0.830 & 0.347 & 0.345 & 0.657 \\
+AG News & SubgraphX & Syntactic & 0.920 & 0.860 & 0.781 & 0.840 & 0.358 & 0.406 & 0.686 \\
+AG News & SubgraphX & Window & 0.926 & 0.845 & 0.770 & 0.839 & 0.315 & 0.366 & 0.681 \\
+AG News & SubgraphX & Skip-gram & 0.926 & 0.858 & 0.761 & 0.833 & 0.358 & 0.369 & 0.647 \\
+AG News & GraphSVX & Constituency & 0.924 & 0.810 & 0.764 & 0.829 & 0.333 & 0.335 & 0.709 \\
+AG News & GraphSVX & Syntactic & 0.920 & 0.844 & 0.780 & 0.843 & 0.324 & 0.387 & 0.703 \\
+AG News & GraphSVX & Window & 0.926 & 0.849 & 0.769 & 0.836 & 0.316 & 0.368 & 0.674 \\
+AG News & GraphSVX & Skip-gram & 0.926 & 0.839 & 0.772 & 0.841 & 0.356 & 0.364 & 0.693 \\
+AG News & TokenSHAP (BERT) & Tokens & 0.938 & 0.874 & 0.782 & 0.864 & 0.364 & 0.383 & 0.677 \\
+SST-2 & SubgraphX & Constituency & 0.890 & 0.768 & 0.728 & 0.791 & 0.284 & 0.322 & 0.677 \\
+SST-2 & SubgraphX & Syntactic & 0.875 & 0.765 & 0.716 & 0.783 & 0.299 & 0.321 & 0.651 \\
+SST-2 & SubgraphX & Window & 0.888 & 0.767 & 0.722 & 0.792 & 0.355 & 0.316 & 0.663 \\
+SST-2 & SubgraphX & Skip-gram & 0.878 & 0.773 & 0.737 & 0.797 & 0.340 & 0.347 & 0.689 \\
+SST-2 & GraphSVX & Constituency & 0.890 & 0.781 & 0.726 & 0.786 & 0.303 & 0.326 & 0.656 \\
+SST-2 & GraphSVX & Syntactic & 0.875 & 0.763 & 0.742 & 0.794 & 0.319 & 0.353 & 0.716 \\
+SST-2 & GraphSVX & Window & 0.888 & 0.765 & 0.729 & 0.806 & 0.341 & 0.324 & 0.684 \\
+SST-2 & GraphSVX & Skip-gram & 0.878 & 0.771 & 0.723 & 0.799 & 0.338 & 0.329 & 0.660 \\
+SST-2 & TokenSHAP (BERT) & Tokens & 0.916 & 0.810 & 0.722 & 0.813 & 0.260 & 0.302 & 0.616 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Error detection with the four-dimension logistic regression (disagreement with the BERT teacher); pooled model, 10-fold CV.}
+\label{tab:lr_teacher_agreement}
+\begin{tabular}{lllrrrrrrr}
+\toprule
+Dataset & Explainer & Graph & Majority acc. & Accuracy & Bal. acc. & AUROC & AUPRC (err) & MCC & Recall (err) \\
+\midrule
+AG News & SubgraphX & Constituency & 0.965 & 0.901 & 0.882 & 0.945 & 0.376 & 0.427 & 0.861 \\
+AG News & SubgraphX & Syntactic & 0.958 & 0.901 & 0.876 & 0.940 & 0.426 & 0.450 & 0.849 \\
+AG News & SubgraphX & Window & 0.965 & 0.899 & 0.881 & 0.936 & 0.373 & 0.421 & 0.861 \\
+AG News & SubgraphX & Skip-gram & 0.965 & 0.908 & 0.875 & 0.947 & 0.430 & 0.429 & 0.840 \\
+AG News & GraphSVX & Constituency & 0.965 & 0.877 & 0.877 & 0.946 & 0.364 & 0.389 & 0.876 \\
+AG News & GraphSVX & Syntactic & 0.958 & 0.888 & 0.887 & 0.941 & 0.380 & 0.441 & 0.886 \\
+AG News & GraphSVX & Window & 0.965 & 0.883 & 0.874 & 0.944 & 0.357 & 0.393 & 0.865 \\
+AG News & GraphSVX & Skip-gram & 0.965 & 0.894 & 0.875 & 0.947 & 0.404 & 0.406 & 0.856 \\
+AG News & TokenSHAP (BERT) & Tokens & 0.938 & 0.874 & 0.782 & 0.864 & 0.364 & 0.383 & 0.677 \\
+SST-2 & SubgraphX & Constituency & 0.929 & 0.872 & 0.871 & 0.927 & 0.433 & 0.495 & 0.871 \\
+SST-2 & SubgraphX & Syntactic & 0.919 & 0.811 & 0.762 & 0.865 & 0.318 & 0.345 & 0.704 \\
+SST-2 & SubgraphX & Window & 0.933 & 0.858 & 0.836 & 0.913 & 0.421 & 0.432 & 0.810 \\
+SST-2 & SubgraphX & Skip-gram & 0.917 & 0.838 & 0.836 & 0.897 & 0.435 & 0.449 & 0.833 \\
+SST-2 & GraphSVX & Constituency & 0.929 & 0.873 & 0.872 & 0.912 & 0.473 & 0.498 & 0.871 \\
+SST-2 & GraphSVX & Syntactic & 0.919 & 0.821 & 0.826 & 0.882 & 0.321 & 0.421 & 0.831 \\
+SST-2 & GraphSVX & Window & 0.933 & 0.852 & 0.841 & 0.908 & 0.417 & 0.431 & 0.828 \\
+SST-2 & GraphSVX & Skip-gram & 0.917 & 0.859 & 0.841 & 0.909 & 0.484 & 0.475 & 0.819 \\
+SST-2 & TokenSHAP (BERT) & Tokens & 0.916 & 0.810 & 0.722 & 0.813 & 0.260 & 0.302 & 0.616 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Original Table 5 protocol recomputed with per-predicted-class models (teacher-agreement target).}
+\label{tab:lr_paper_protocol}
+\begin{tabular}{lllrrrrr}
+\toprule
+Dataset & Explainer & Graph & Pooled acc. & Per-pred-class acc. & SD & Bootstrap acc. & Bootstrap SD \\
+\midrule
+AG News & SubgraphX & Constituency & 0.901 & 0.902 & 0.039 & 0.910 & 0.034 \\
+AG News & SubgraphX & Syntactic & 0.901 & 0.902 & 0.036 & 0.908 & 0.028 \\
+AG News & SubgraphX & Window & 0.899 & 0.898 & 0.031 & 0.906 & 0.025 \\
+AG News & SubgraphX & Skip-gram & 0.908 & 0.911 & 0.035 & 0.917 & 0.031 \\
+AG News & GraphSVX & Constituency & 0.878 & 0.893 & 0.039 & 0.905 & 0.035 \\
+AG News & GraphSVX & Syntactic & 0.889 & 0.895 & 0.033 & 0.903 & 0.026 \\
+AG News & GraphSVX & Window & 0.884 & 0.896 & 0.033 & 0.906 & 0.027 \\
+AG News & GraphSVX & Skip-gram & 0.894 & 0.910 & 0.031 & 0.916 & 0.029 \\
+AG News & TokenSHAP (BERT) & Tokens & 0.874 & 0.872 & 0.042 & 0.869 & 0.038 \\
+SST-2 & SubgraphX & Constituency & 0.872 & 0.882 & 0.049 & 0.896 & 0.023 \\
+SST-2 & SubgraphX & Syntactic & 0.808 & 0.807 & 0.046 & 0.833 & 0.024 \\
+SST-2 & SubgraphX & Window & 0.853 & 0.867 & 0.051 & 0.893 & 0.029 \\
+SST-2 & SubgraphX & Skip-gram & 0.838 & 0.846 & 0.048 & 0.866 & 0.026 \\
+SST-2 & GraphSVX & Constituency & 0.873 & 0.875 & 0.049 & 0.887 & 0.031 \\
+SST-2 & GraphSVX & Syntactic & 0.821 & 0.807 & 0.048 & 0.828 & 0.024 \\
+SST-2 & GraphSVX & Window & 0.852 & 0.855 & 0.059 & 0.868 & 0.033 \\
+SST-2 & GraphSVX & Skip-gram & 0.859 & 0.869 & 0.049 & 0.873 & 0.022 \\
+SST-2 & TokenSHAP (BERT) & Tokens & 0.813 & 0.800 & 0.083 & 0.827 & 0.061 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Nested models (gold_label): confidence-only (MSP, top-2 margin, entropy) vs. explanation features vs. both; paired bootstrap CI for the gain.}
+\label{tab:nested_gold_label}
+\begin{tabular}{lllrrrr}
+\toprule
+Dataset & Explainer & Graph & Confidence & Explanation & Conf.+Expl. & Delta AUROC [95% CI] \\
+\midrule
+AG News & SubgraphX & Constituency & 0.845 & 0.830 & 0.836 & -0.010 [-0.020, +0.000] \\
+AG News & SubgraphX & Syntactic & 0.840 & 0.840 & 0.844 & +0.004 [-0.004, +0.013] \\
+AG News & SubgraphX & Window & 0.840 & 0.838 & 0.844 & +0.004 [-0.010, +0.016] \\
+AG News & SubgraphX & Skip-gram & 0.841 & 0.833 & 0.842 & +0.002 [-0.011, +0.015] \\
+AG News & GraphSVX & Constituency & 0.845 & 0.829 & 0.837 & -0.009 [-0.020, +0.004] \\
+AG News & GraphSVX & Syntactic & 0.840 & 0.844 & 0.847 & +0.007 [-0.003, +0.017] \\
+AG News & GraphSVX & Window & 0.836 & 0.836 & 0.842 & +0.006 [-0.005, +0.017] \\
+AG News & GraphSVX & Skip-gram & 0.846 & 0.840 & 0.849 & +0.004 [-0.009, +0.016] \\
+AG News & TokenSHAP (BERT) & Tokens & 0.887 & 0.863 & 0.885 & -0.001 [-0.007, +0.005] \\
+SST-2 & SubgraphX & Constituency & 0.808 & 0.791 & 0.784 & -0.024 [-0.050, +0.001] \\
+SST-2 & SubgraphX & Syntactic & 0.802 & 0.783 & 0.791 & -0.010 [-0.040, +0.015] \\
+SST-2 & SubgraphX & Window & 0.823 & 0.792 & 0.791 & -0.032 [-0.052, -0.012] \\
+SST-2 & SubgraphX & Skip-gram & 0.823 & 0.797 & 0.808 & -0.015 [-0.032, +0.002] \\
+SST-2 & GraphSVX & Constituency & 0.808 & 0.787 & 0.789 & -0.018 [-0.039, +0.003] \\
+SST-2 & GraphSVX & Syntactic & 0.802 & 0.794 & 0.800 & -0.002 [-0.024, +0.021] \\
+SST-2 & GraphSVX & Window & 0.821 & 0.806 & 0.804 & -0.016 [-0.034, +0.003] \\
+SST-2 & GraphSVX & Skip-gram & 0.822 & 0.799 & 0.806 & -0.016 [-0.040, +0.002] \\
+SST-2 & TokenSHAP (BERT) & Tokens & 0.835 & 0.813 & 0.834 & -0.001 [-0.027, +0.028] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Nested models (teacher_agreement): confidence-only (MSP, top-2 margin, entropy) vs. explanation features vs. both; paired bootstrap CI for the gain.}
+\label{tab:nested_teacher_agreement}
+\begin{tabular}{lllrrrr}
+\toprule
+Dataset & Explainer & Graph & Confidence & Explanation & Conf.+Expl. & Delta AUROC [95% CI] \\
+\midrule
+AG News & SubgraphX & Constituency & 0.948 & 0.945 & 0.948 & -0.000 [-0.005, +0.005] \\
+AG News & SubgraphX & Syntactic & 0.935 & 0.940 & 0.941 & +0.006 [+0.001, +0.011] \\
+AG News & SubgraphX & Window & 0.944 & 0.936 & 0.940 & -0.005 [-0.016, +0.006] \\
+AG News & SubgraphX & Skip-gram & 0.950 & 0.947 & 0.951 & +0.001 [-0.004, +0.006] \\
+AG News & GraphSVX & Constituency & 0.948 & 0.946 & 0.948 & -0.000 [-0.006, +0.006] \\
+AG News & GraphSVX & Syntactic & 0.935 & 0.941 & 0.942 & +0.007 [+0.003, +0.012] \\
+AG News & GraphSVX & Window & 0.945 & 0.943 & 0.949 & +0.005 [-0.002, +0.013] \\
+AG News & GraphSVX & Skip-gram & 0.949 & 0.947 & 0.954 & +0.005 [+0.001, +0.010] \\
+AG News & TokenSHAP (BERT) & Tokens & 0.887 & 0.863 & 0.885 & -0.001 [-0.007, +0.005] \\
+SST-2 & SubgraphX & Constituency & 0.932 & 0.928 & 0.927 & -0.005 [-0.016, +0.007] \\
+SST-2 & SubgraphX & Syntactic & 0.872 & 0.865 & 0.864 & -0.007 [-0.026, +0.011] \\
+SST-2 & SubgraphX & Window & 0.916 & 0.913 & 0.915 & -0.001 [-0.022, +0.021] \\
+SST-2 & SubgraphX & Skip-gram & 0.914 & 0.897 & 0.895 & -0.020 [-0.056, +0.006] \\
+SST-2 & GraphSVX & Constituency & 0.932 & 0.912 & 0.915 & -0.017 [-0.032, -0.003] \\
+SST-2 & GraphSVX & Syntactic & 0.872 & 0.882 & 0.879 & +0.007 [-0.011, +0.025] \\
+SST-2 & GraphSVX & Window & 0.914 & 0.909 & 0.907 & -0.006 [-0.020, +0.006] \\
+SST-2 & GraphSVX & Skip-gram & 0.908 & 0.909 & 0.913 & +0.005 [-0.011, +0.019] \\
+SST-2 & TokenSHAP (BERT) & Tokens & 0.835 & 0.813 & 0.834 & -0.001 [-0.027, +0.028] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Association between quadrant and correctness (gold_label): Jensen-Shannon divergence (bits) and Cramer's V; the former Separability index is shown for reference.}
+\label{tab:quadrants_gold_label}
+\begin{tabular}{lllrrrrrr}
+\toprule
+Dataset & Explainer & Graph & JS (D3) & Cramer V (D3) & old Sep. (D3) & JS (D4) & Cramer V (D4) & old Sep. (D4) \\
+\midrule
+AG News & SubgraphX & Constituency & 0.058 & 0.234 & 8.730 & 0.028 & 0.116 & 4.349 \\
+AG News & SubgraphX & Syntactic & 0.076 & 0.260 & 9.953 & 0.008 & 0.088 & 3.364 \\
+AG News & SubgraphX & Window & 0.036 & 0.196 & 7.243 & 0.011 & 0.071 & 2.627 \\
+AG News & SubgraphX & Skip-gram & 0.061 & 0.251 & 9.287 & 0.039 & 0.126 & 4.674 \\
+AG News & GraphSVX & Constituency & 0.172 & 0.290 & 10.837 & 0.112 & 0.234 & 8.741 \\
+AG News & GraphSVX & Syntactic & 0.176 & 0.361 & 13.818 & 0.063 & 0.217 & 8.323 \\
+AG News & GraphSVX & Window & 0.145 & 0.320 & 11.834 & 0.039 & 0.160 & 5.934 \\
+AG News & GraphSVX & Skip-gram & 0.131 & 0.302 & 11.193 & 0.033 & 0.144 & 5.324 \\
+AG News & TokenSHAP (BERT) & Tokens & 0.086 & 0.240 & 8.171 & 0.034 & 0.129 & 4.409 \\
+SST-2 & SubgraphX & Constituency & 0.022 & 0.142 & 6.304 & 0.059 & 0.160 & 7.095 \\
+SST-2 & SubgraphX & Syntactic & 0.103 & 0.303 & 14.174 & 0.018 & 0.128 & 5.991 \\
+SST-2 & SubgraphX & Window & 0.030 & 0.161 & 7.190 & 0.010 & 0.076 & 3.401 \\
+SST-2 & SubgraphX & Skip-gram & 0.042 & 0.202 & 9.326 & 0.009 & 0.057 & 2.633 \\
+SST-2 & GraphSVX & Constituency & 0.143 & 0.301 & 13.330 & 0.023 & 0.125 & 5.552 \\
+SST-2 & GraphSVX & Syntactic & 0.134 & 0.330 & 15.427 & 0.054 & 0.223 & 10.411 \\
+SST-2 & GraphSVX & Window & 0.135 & 0.333 & 14.865 & 0.013 & 0.104 & 4.661 \\
+SST-2 & GraphSVX & Skip-gram & 0.122 & 0.328 & 15.165 & 0.002 & 0.038 & 1.754 \\
+SST-2 & TokenSHAP (BERT) & Tokens & 0.054 & 0.179 & 7.004 & 0.024 & 0.123 & 4.812 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Association between quadrant and correctness (teacher_agreement): Jensen-Shannon divergence (bits) and Cramer's V; the former Separability index is shown for reference.}
+\label{tab:quadrants_teacher_agreement}
+\begin{tabular}{lllrrrrrr}
+\toprule
+Dataset & Explainer & Graph & JS (D3) & Cramer V (D3) & old Sep. (D3) & JS (D4) & Cramer V (D4) & old Sep. (D4) \\
+\midrule
+AG News & SubgraphX & Constituency & 0.118 & 0.278 & 7.241 & 0.068 & 0.130 & 3.391 \\
+AG News & SubgraphX & Syntactic & 0.202 & 0.378 & 10.695 & 0.016 & 0.115 & 3.244 \\
+AG News & SubgraphX & Window & 0.102 & 0.304 & 7.899 & 0.012 & 0.070 & 1.823 \\
+AG News & SubgraphX & Skip-gram & 0.101 & 0.304 & 7.871 & 0.046 & 0.094 & 2.435 \\
+AG News & GraphSVX & Constituency & 0.385 & 0.290 & 7.542 & 0.177 & 0.207 & 5.381 \\
+AG News & GraphSVX & Syntactic & 0.415 & 0.433 & 12.253 & 0.123 & 0.250 & 7.065 \\
+AG News & GraphSVX & Window & 0.382 & 0.397 & 10.317 & 0.086 & 0.189 & 4.900 \\
+AG News & GraphSVX & Skip-gram & 0.291 & 0.347 & 8.966 & 0.040 & 0.115 & 2.969 \\
+AG News & TokenSHAP (BERT) & Tokens & 0.086 & 0.240 & 8.171 & 0.034 & 0.129 & 4.409 \\
+SST-2 & SubgraphX & Constituency & 0.080 & 0.261 & 9.488 & 0.148 & 0.175 & 6.369 \\
+SST-2 & SubgraphX & Syntactic & 0.126 & 0.288 & 11.151 & 0.019 & 0.115 & 4.429 \\
+SST-2 & SubgraphX & Window & 0.121 & 0.294 & 10.364 & 0.003 & 0.039 & 1.374 \\
+SST-2 & SubgraphX & Skip-gram & 0.112 & 0.286 & 11.128 & 0.001 & 0.016 & 0.637 \\
+SST-2 & GraphSVX & Constituency & 0.312 & 0.355 & 12.910 & 0.014 & 0.078 & 2.837 \\
+SST-2 & GraphSVX & Syntactic & 0.270 & 0.397 & 15.365 & 0.090 & 0.255 & 9.862 \\
+SST-2 & GraphSVX & Window & 0.343 & 0.441 & 15.545 & 0.030 & 0.144 & 5.065 \\
+SST-2 & GraphSVX & Skip-gram & 0.299 & 0.461 & 17.960 & 0.008 & 0.070 & 2.721 \\
+SST-2 & TokenSHAP (BERT) & Tokens & 0.054 & 0.179 & 7.004 & 0.024 & 0.123 & 4.812 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Calibration and over-confident errors (gold_label).}
+\label{tab:regime_gold_label}
+\begin{tabular}{lllrrrrrrrr}
+\toprule
+Dataset & Explainer & Graph & ECE & Errors & Share of errors conf>0.9 & Errors conf>0.9 & AUROC conf. & AUROC conf.+expl. & Delta AUROC [CI] & Delta AUPRC [CI] \\
+\midrule
+AG News & SubgraphX & Constituency & 0.043 & 574 & 0.502 & 288 & 0.777 & 0.769 & -0.008 [-0.028, +0.011] & +0.003 [-0.017, +0.023] \\
+AG News & SubgraphX & Syntactic & 0.041 & 606 & 0.442 & 268 & 0.759 & 0.766 & +0.007 [-0.015, +0.027] & +0.007 [-0.025, +0.041] \\
+AG News & SubgraphX & Window & 0.041 & 562 & 0.495 & 278 & 0.771 & 0.787 & +0.016 [-0.005, +0.038] & +0.014 [-0.003, +0.033] \\
+AG News & SubgraphX & Skip-gram & 0.043 & 564 & 0.500 & 282 & 0.784 & 0.788 & +0.005 [-0.019, +0.029] & +0.008 [-0.005, +0.022] \\
+AG News & GraphSVX & Constituency & 0.043 & 574 & 0.502 & 288 & 0.777 & 0.775 & -0.002 [-0.026, +0.020] & +0.000 [-0.015, +0.016] \\
+AG News & GraphSVX & Syntactic & 0.041 & 606 & 0.442 & 268 & 0.759 & 0.775 & +0.016 [-0.008, +0.038] & -0.008 [-0.042, +0.026] \\
+AG News & GraphSVX & Window & 0.041 & 562 & 0.495 & 278 & 0.770 & 0.782 & +0.012 [-0.012, +0.035] & +0.025 [+0.005, +0.050] \\
+AG News & GraphSVX & Skip-gram & 0.043 & 564 & 0.500 & 282 & 0.779 & 0.800 & +0.022 [+0.000, +0.043] & +0.026 [+0.010, +0.049] \\
+AG News & TokenSHAP (BERT) & Tokens & 0.010 & 471 & 0.306 & 144 & 0.809 & 0.795 & -0.013 [-0.029, +0.004] & +0.000 [-0.017, +0.021] \\
+SST-2 & SubgraphX & Constituency & 0.043 & 96 & 0.354 & 34 & 0.727 & 0.664 & -0.064 [-0.150, +0.005] & -0.012 [-0.054, +0.037] \\
+SST-2 & SubgraphX & Syntactic & 0.063 & 109 & 0.413 & 45 & 0.755 & 0.765 & +0.010 [-0.055, +0.079] & +0.012 [-0.069, +0.108] \\
+SST-2 & SubgraphX & Window & 0.040 & 98 & 0.327 & 32 & 0.730 & 0.609 & -0.122 [-0.195, -0.058] & -0.033 [-0.068, -0.009] \\
+SST-2 & SubgraphX & Skip-gram & 0.050 & 106 & 0.349 & 37 & 0.795 & 0.745 & -0.051 [-0.104, -0.005] & +0.005 [-0.051, +0.065] \\
+SST-2 & GraphSVX & Constituency & 0.043 & 96 & 0.354 & 34 & 0.727 & 0.629 & -0.098 [-0.173, -0.028] & -0.017 [-0.060, +0.026] \\
+SST-2 & GraphSVX & Syntactic & 0.063 & 109 & 0.413 & 45 & 0.755 & 0.755 & -0.000 [-0.061, +0.063] & +0.019 [-0.052, +0.102] \\
+SST-2 & GraphSVX & Window & 0.040 & 98 & 0.327 & 32 & 0.723 & 0.662 & -0.062 [-0.111, -0.016] & -0.016 [-0.039, +0.001] \\
+SST-2 & GraphSVX & Skip-gram & 0.050 & 106 & 0.349 & 37 & 0.790 & 0.741 & -0.049 [-0.093, -0.012] & -0.004 [-0.038, +0.045] \\
+SST-2 & TokenSHAP (BERT) & Tokens & 0.039 & 73 & 0.438 & 32 & 0.793 & 0.797 & +0.005 [-0.059, +0.066] & +0.051 [-0.025, +0.157] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Calibration and over-confident errors (teacher_agreement).}
+\label{tab:regime_teacher_agreement}
+\begin{tabular}{lllrrrrrrrr}
+\toprule
+Dataset & Explainer & Graph & ECE & Errors & Share of errors conf>0.9 & Errors conf>0.9 & AUROC conf. & AUROC conf.+expl. & Delta AUROC [CI] & Delta AUPRC [CI] \\
+\midrule
+AG News & SubgraphX & Constituency & 0.005 & 267 & 0.191 & 51 & 0.932 & 0.906 & -0.025 [-0.072, +0.011] & -0.011 [-0.035, +0.012] \\
+AG News & SubgraphX & Syntactic & 0.003 & 317 & 0.167 & 53 & 0.871 & 0.869 & -0.002 [-0.046, +0.034] & +0.015 [-0.039, +0.079] \\
+AG News & SubgraphX & Window & 0.004 & 266 & 0.195 & 52 & 0.912 & 0.853 & -0.059 [-0.121, -0.016] & -0.024 [-0.071, +0.002] \\
+AG News & SubgraphX & Skip-gram & 0.004 & 263 & 0.179 & 47 & 0.922 & 0.881 & -0.042 [-0.099, -0.004] & -0.019 [-0.059, +0.017] \\
+AG News & GraphSVX & Constituency & 0.005 & 267 & 0.191 & 51 & 0.932 & 0.916 & -0.015 [-0.050, +0.015] & -0.002 [-0.025, +0.022] \\
+AG News & GraphSVX & Syntactic & 0.003 & 317 & 0.167 & 53 & 0.871 & 0.809 & -0.062 [-0.133, -0.001] & -0.015 [-0.072, +0.033] \\
+AG News & GraphSVX & Window & 0.004 & 266 & 0.195 & 52 & 0.908 & 0.923 & +0.015 [-0.013, +0.050] & -0.002 [-0.046, +0.031] \\
+AG News & GraphSVX & Skip-gram & 0.004 & 263 & 0.179 & 47 & 0.922 & 0.905 & -0.016 [-0.051, +0.014] & -0.002 [-0.029, +0.032] \\
+AG News & TokenSHAP (BERT) & Tokens & 0.010 & 471 & 0.306 & 144 & 0.809 & 0.795 & -0.013 [-0.029, +0.004] & +0.000 [-0.017, +0.021] \\
+SST-2 & SubgraphX & Constituency & 0.017 & 62 & 0.081 & 5 & nan & nan & n/a & n/a \\
+SST-2 & SubgraphX & Syntactic & 0.022 & 71 & 0.254 & 18 & 0.859 & 0.781 & -0.076 [-0.194, +0.015] & +0.119 [-0.061, +0.317] \\
+SST-2 & SubgraphX & Window & 0.017 & 58 & 0.086 & 5 & nan & nan & n/a & n/a \\
+SST-2 & SubgraphX & Skip-gram & 0.015 & 72 & 0.111 & 8 & nan & nan & n/a & n/a \\
+SST-2 & GraphSVX & Constituency & 0.017 & 62 & 0.081 & 5 & nan & nan & n/a & n/a \\
+SST-2 & GraphSVX & Syntactic & 0.022 & 71 & 0.254 & 18 & 0.859 & 0.830 & -0.029 [-0.095, +0.025] & -0.000 [-0.108, +0.113] \\
+SST-2 & GraphSVX & Window & 0.017 & 58 & 0.086 & 5 & nan & nan & n/a & n/a \\
+SST-2 & GraphSVX & Skip-gram & 0.015 & 72 & 0.111 & 8 & nan & nan & n/a & n/a \\
+SST-2 & TokenSHAP (BERT) & Tokens & 0.039 & 73 & 0.438 & 32 & 0.793 & 0.797 & +0.005 [-0.059, +0.066] & +0.051 [-0.025, +0.157] \\
+\bottomrule
+\end{tabular}
+\end{table}
